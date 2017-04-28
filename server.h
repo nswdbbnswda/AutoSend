@@ -13,6 +13,7 @@
 #include<QDirIterator>
 #include<queue>
 #include<QFileSystemWatcher>
+#include"sendthread.h"
 
 
 
@@ -20,9 +21,7 @@ class Server : QObject
 {  Q_OBJECT
 public:
     explicit Server();
-  void WatchEvery(const QString &path);
-    ~Server();
-
+    virtual ~Server();
 private:
     QTcpServer *server;//监听套接字
     QTcpSocket *m_Socket;//连接套接字
@@ -36,22 +35,24 @@ private:
     char  *SendPath;
     qint32 lenth;
     char *FileNum;
-
-
+    SendThread work;
     std::map<QString,size_t> mymapCur;
     std::map<QString,size_t> mymapLast;
+    std::queue<QString> *Fileque;////文件队列
+    std::queue<QString> *Pathque;//路径队列
+    QFileSystemWatcher myWatcher;
+    SendThread sendThread;//发送线程
 private:
-     std::queue<QString> *Fileque;////文件队列
-     std::queue<QString> *Pathque;//路径队列
-     void  GetFileList(const QString &path);//获得目录下的所有文件
-      QFileSystemWatcher myWatcher;
+    void  GetFileList(const QString &path);//获得目录下的所有文件
+    void WatchEvery(const QString &path);
+    void SendFile();
 
 signals:
-    void SendData();//发送数据
+    void Send();//发送数据
 private slots:
     void newConnectionSlot();//对新的TCP连接进行处理
-    void  UpProgress();//显示进度
     void showMessage(const QString &path);
+    void sendChange();//当文件改变的时候触发这个槽
 
 };
 
