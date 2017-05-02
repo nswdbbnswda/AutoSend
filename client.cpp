@@ -82,7 +82,7 @@ void Client::ReceiveData()
                         m_pSocket->waitForReadyRead();
                     }
                     vTemp=m_pSocket->read(8388608); //读取838608个字节
-                    vTemp.clear();
+                    //vTemp.clear();
                     while(m_pSocket->bytesAvailable()<12){
                         m_pSocket->waitForReadyRead();
                     }
@@ -97,7 +97,7 @@ void Client::ReceiveData()
                 }
                 vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
                 WrittenByte+=file.write(vTemp);
-                vTemp.clear();
+               // vTemp.clear();
             }
 
             else{//处理最后一个数据块
@@ -106,7 +106,7 @@ void Client::ReceiveData()
                 }
                 vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
                 WrittenByte+=file.write(vTemp);
-                vTemp.clear();
+               // vTemp.clear();
                 //emit  DataWritten();
             }
             file.close();
