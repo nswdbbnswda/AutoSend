@@ -26,14 +26,15 @@ private:
     QTcpServer *server;//监听套接字
     QTcpSocket *m_Socket;//连接套接字
     std::string path,dirpath;
-    qint32 FileLength;//文件的长度
-    qint32 BlockNum;//整块数量
-    qint32 TotalByte,temp,PathLength;
-    qint32 Num2,Num3,Num4,TotalNum;
-    qint32 LastBlock;
+    qint64 FileLength;//文件的长度
+    qint64 BlockNum;//整块数量
+    qint64 TotalByte,temp;
+    qint32 PathLength;
+    qint64 Num2,Num3,Num4,TotalNum;
+    qint64 LastBlock;
     char  *SendBuffer;
     char  *SendPath;
-    qint32 lenth;
+    qint64 lenth;
     char *FileNum;
     SendThread work;
     std::map<QString,size_t> mymapCur;

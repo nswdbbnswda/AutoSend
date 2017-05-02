@@ -4,12 +4,15 @@
 #include<QFile>
 #include<vector>
 #include"sendthread.h"
+#include<Windows.h>
 
-Server::Server()
+Server::Server():FileLength(0),BlockNum(0),TotalByte(0),temp(0),PathLength(0),Num2(0),Num3(0),Num4(0),TotalNum(0),
+    LastBlock(0),SendBuffer(NULL),SendPath(NULL),lenth(0),FileNum(NULL)
 {
    //路径初始化
     std::cout<<"path:";
     std::cin>>dirpath;
+   // dirpath = std::string("G:/FUCK");
     Fileque = new std::queue<QString>;//实例化文件队列
     Pathque = new std::queue<QString>;//实例化路径队列
      FileNum = new char[8];
@@ -32,6 +35,7 @@ Server::Server()
     GetFileList(QString::fromStdString(dirpath));//获得待发送的文件列表
 
 
+ //SendBuffer=new char[8388608+12];//申请buffer
 }
 
 
@@ -59,12 +63,9 @@ Server::~Server()
        delete Pathque;
     }
 
+
+
 }
-
-
-
-
-
 
 
 
@@ -91,32 +92,41 @@ void Server::WatchEvery(const QString &path)
 
 
 
+
 //发送文件
 void Server::SendFile()
 {
    // m_Socket = server->nextPendingConnection();//创建连接的套接字
     qint64 i64FileNum =(qint64)Fileque->size();//显示队列中有几个文件
-    qDebug()<<i64FileNum;
+   // qDebug()<<i64FileNum;
 
     while(Fileque->size())//有几个文件就发几次
     {
-
+       //  Sleep(5000);
         //路径获取
         QString fullpath =  Fileque->front();//队列头文件的全路径
         path =  fullpath.toStdString();//把全路径从QString格式转换成string
         //文件打开
         QFile file(path.c_str());
         file.open(QFile::ReadOnly);//以只读的方式打开文件
-        std::cout<<path.c_str()<<std::endl;//显示文件的绝对路径
+        //std::cout<<path.c_str()<<std::endl;//显示文件的绝对路径
+        qDebug()<<fullpath;
         FileLength = file.size();//获取文件长度
         BlockNum=FileLength/8388608;//整包数量
         temp=BlockNum;//备份整包数量
         LastBlock=FileLength%8388608;//最后一块文件的大小
         TotalNum=BlockNum+1;//总包数量
         TotalByte=BlockNum*8388608+LastBlock;//总字节数
+//        qDebug()<<TotalNum;
+//        qDebug()<<LastBlock;
+//        qDebug()<<LastBlock;
+//        qDebug()<<TotalByte;
+
+
 
         SendBuffer=new char[8388608+12];//申请buffer
         PathLength=path.length();//储存文件路径字符的长度
+       //std::cout<<PathLength<<std::endl;
         SendPath=new char[PathLength+4];//分配发送路径的buffer,多分配四个字节储存一个整型数
         //拷贝文件名
         memcpy(SendPath, &PathLength, 4); //将字节长度信息存在前4个字节内
@@ -142,6 +152,7 @@ void Server::SendFile()
 
 
         file.close();
+
         delete []SendBuffer;
         delete []SendPath;
         SendBuffer = NULL;
@@ -182,13 +193,9 @@ void Server::GetFileList(const QString &path)
 //当有新的连接的时候
 void Server::newConnectionSlot()
 {
-
-
   //  createSendThread.run();
     m_Socket = server->nextPendingConnection();//创建连接的套接字
     SendFile();
-
-
 }
 
 
@@ -222,19 +229,20 @@ void Server::showMessage(const QString &path)
 
         //找出比上次map中多出的文件
         for( auto &w : mymapCur){//如果在当前的这个文件在上一次文件快照的时候没有出现过，那么就把该文件找出来，认为这个文件是刚产生的
-            if(mymapLast.find(w.first) == mymapLast.end())
-                qDebug()<<w.first;
+            if(mymapLast.find(w.first) == mymapLast.end()){
+                //qDebug()<<w.first;
              Fileque->push(w.first);//把变化的文件插入到队列中
-            qDebug()<< "Dir:" <<Fileque->size();
+            }
+           // qDebug()<< "Dir:" <<Fileque->size();
         }
         mymapLast = mymapCur;//把当前的map作为上次的map记录
         emit Send();
         return;
     }
 
-    qDebug()<<path;
+    //qDebug()<<path;
      Fileque->push(path);//把变化的文件插入到队列中
-     qDebug()<< "File:" <<Fileque->size();
+     //qDebug()<< "File:" <<Fileque->size();
        emit Send();
 }
 
