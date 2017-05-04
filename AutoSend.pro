@@ -13,10 +13,16 @@ SOURCES += main.cpp \
     server.cpp \
     client.cpp \
     iter.cpp \
-    sendthread.cpp
+    sendthread.cpp \
+    filebase.cpp \
+    filewatcher.cpp \
+    sender.cpp
 
 HEADERS += \
     server.h \
     client.h \
     iter.h \
-    sendthread.h
+    sendthread.h \
+    filebase.h \
+    filewatcher.h \
+    sender.h

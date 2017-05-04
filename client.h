@@ -29,7 +29,7 @@ public slots:
     void UpProgress();
     void test();
 signals:
-    void  DataComing();
+    void DataComing();
     void DataWritten();
 };
 

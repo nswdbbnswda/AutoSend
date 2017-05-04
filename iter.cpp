@@ -43,7 +43,6 @@ void Iter::interacter()
                  !strcmp(com, "q"))
         {
 
-         // break;
         }
         else if (!strcmp(com, "refresh") ||
                  !strcmp(com, "rf"))

@@ -14,6 +14,9 @@
 #include<queue>
 #include<QFileSystemWatcher>
 #include"sendthread.h"
+#include"filewatcher.h"
+#include"sender.h"
+
 
 
 
@@ -23,37 +26,17 @@ public:
     explicit Server();
     virtual ~Server();
 private:
+    enum ThreadMaxNum{Min = 10,Mind = 20,Max = 30,Super = 1000};
     QTcpServer *server;//监听套接字
-    QTcpSocket *m_Socket;//连接套接字
-    std::string path,dirpath;
-    qint64 FileLength;//文件的长度
-    qint64 BlockNum;//整块数量
-    qint64 TotalByte,temp;
-    qint32 PathLength;
-    qint64 Num2,Num3,Num4,TotalNum;
-    qint64 LastBlock;
-    char  *SendBuffer;
-    char  *SendPath;
-    qint64 lenth;
-    char *FileNum;
-    SendThread work;
-    std::map<QString,size_t> mymapCur;
-    std::map<QString,size_t> mymapLast;
-    std::queue<QString> *Fileque;////文件队列
-    std::queue<QString> *Pathque;//路径队列
-    QFileSystemWatcher myWatcher;
-    SendThread sendThread;//发送线程
-private:
-    void  GetFileList(const QString &path);//获得目录下的所有文件
-    void WatchEvery(const QString &path);
-    void SendFile();
-
+    QTcpSocket *m_Socket[Min];//连接套接字
+    std::string path, dirpath;
+    SendThread *sendThread[Min];
+    qint64 ThreadNum;
 signals:
-    void Send();//发送数据
+
 private slots:
-    void newConnectionSlot();//对新的TCP连接进行处理
-    void showMessage(const QString &path);
-    void sendChange();//当文件改变的时候触发这个槽
+     void newConnectionSlot();//对新的TCP连接进行处理
+
 
 };
 

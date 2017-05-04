@@ -6,16 +6,20 @@
 #include"sendthread.h"
 #include<Windows.h>
 
-Server::Server():FileLength(0),BlockNum(0),TotalByte(0),temp(0),PathLength(0),Num2(0),Num3(0),Num4(0),TotalNum(0),
-    LastBlock(0),SendBuffer(NULL),SendPath(NULL),lenth(0),FileNum(NULL)
+
+
+
+
+Server::Server()
+
 {
    //路径初始化
     std::cout<<"path:";
     std::cin>>dirpath;
-   // dirpath = std::string("G:/FUCK");
-    Fileque = new std::queue<QString>;//实例化文件队列
-    Pathque = new std::queue<QString>;//实例化路径队列
-     FileNum = new char[8];
+
+
+    FileWatcher f1(dirpath);
+    f1.watchEverything();
 
    //TCP
    server = new QTcpServer(this);//创建TCP套接字
@@ -26,231 +30,45 @@ Server::Server():FileLength(0),BlockNum(0),TotalByte(0),temp(0),PathLength(0),Nu
         else{ std::cout<<"open listen port fail!"<<std::endl;}
     }
     else{std::cout<<"Function  isListening()  error!"<<std::endl; }
-    connect(server, SIGNAL(newConnection()), this, SLOT(newConnectionSlot()));//当有新的连接的时候，就会执行槽函数
-    connect(&myWatcher,SIGNAL(directoryChanged(QString)),this,SLOT(showMessage(QString)));
-    connect(&myWatcher,SIGNAL(fileChanged(QString)),this,SLOT(showMessage(QString)));
-    connect(this,SIGNAL(Send()),this,SLOT(sendChange()));
-    QString fuck(QString::fromStdString(dirpath));
-    WatchEvery(fuck);//监视当前状态下的所有文件和路径
-    GetFileList(QString::fromStdString(dirpath));//获得待发送的文件列表
-
-
- //SendBuffer=new char[8388608+12];//申请buffer
+   connect(server, SIGNAL(newConnection()), this, SLOT(newConnectionSlot()));//当有新的连接的时候，就会执行槽函数
 }
 
 
 
-Server::~Server()
-{
+Server::~Server(){
     if(server) {
         delete server;
-    server = NULL;
+        server = NULL;
     }
     if(m_Socket){
-        delete m_Socket;
-        m_Socket = NULL;
-    }
-
-    if(Fileque){
-        delete Fileque;
-        Fileque = NULL;
-    }
-    if(FileNum) {
-        delete FileNum;
-    FileNum = NULL;
-    }
-    if(Pathque){
-       delete Pathque;
+        delete[] m_Socket;
     }
 
 
 
-}
 
-
-
-
-
-
-
-//监视一个目录下的所有文件和所有的目录
-void Server::WatchEvery(const QString &path)
-{
-    myWatcher.addPath(path);
-    //定义迭代器并设置过滤器
-    QDirIterator dir_iterator1(path,  QDir::NoDotAndDotDot | QDir::AllEntries,QDirIterator::Subdirectories);
-    while(dir_iterator1.hasNext())//遍历目录
-    {
-       QString fuck = dir_iterator1.next();//监视所有目录和文件
-       myWatcher.addPath(fuck);
+    if(sendThread){
+        delete[] sendThread;
     }
-    return;
 }
 
 
 
+//当有新的连接的时候为这个连接创建一个线程然后把套接字传给这个线程里面的发送器进行发送操作
+void Server::newConnectionSlot(){
 
-
-
-
-//发送文件
-void Server::SendFile()
-{
-   // m_Socket = server->nextPendingConnection();//创建连接的套接字
-    qint64 i64FileNum =(qint64)Fileque->size();//显示队列中有几个文件
-   // qDebug()<<i64FileNum;
-
-    while(Fileque->size())//有几个文件就发几次
-    {
-       //  Sleep(5000);
-        //路径获取
-        QString fullpath =  Fileque->front();//队列头文件的全路径
-        path =  fullpath.toStdString();//把全路径从QString格式转换成string
-        //文件打开
-        QFile file(path.c_str());
-        file.open(QFile::ReadOnly);//以只读的方式打开文件
-        //std::cout<<path.c_str()<<std::endl;//显示文件的绝对路径
-        qDebug()<<fullpath;
-        FileLength = file.size();//获取文件长度
-        BlockNum=FileLength/8388608;//整包数量
-        temp=BlockNum;//备份整包数量
-        LastBlock=FileLength%8388608;//最后一块文件的大小
-        TotalNum=BlockNum+1;//总包数量
-        TotalByte=BlockNum*8388608+LastBlock;//总字节数
-//        qDebug()<<TotalNum;
-//        qDebug()<<LastBlock;
-//        qDebug()<<LastBlock;
-//        qDebug()<<TotalByte;
-
-
-
-        SendBuffer=new char[8388608+12];//申请buffer
-        PathLength=path.length();//储存文件路径字符的长度
-       //std::cout<<PathLength<<std::endl;
-        SendPath=new char[PathLength+4];//分配发送路径的buffer,多分配四个字节储存一个整型数
-        //拷贝文件名
-        memcpy(SendPath, &PathLength, 4); //将字节长度信息存在前4个字节内
-        memcpy(&SendPath[4],path.c_str(),PathLength);//组装文件名信息
-
-        m_Socket->write(SendPath,path.length()+4);//发送文件名
-        //发送数据
-        for (qint32 i = 1; temp> 0; temp--,i++){
-            memcpy(SendBuffer, &i, 4);             //添加4个字节到数组的前四个字节作为当前包的次序数
-            memcpy(&SendBuffer[4], &TotalNum, 4);// 添加4个字节到数据的4-8字节作为整个文件的包的数量
-            memcpy(&SendBuffer[8], &LastBlock, 4); //添加4个字节到数据的8-12字节作为最后一个包的大小
-            file.read(&SendBuffer[12],8388608);//读取数据
-            lenth = m_Socket->write(SendBuffer,8388608+12);
-            m_Socket->waitForBytesWritten();//等待数据发送完
-            // emit SendData();
-        }
-        memcpy(SendBuffer, &TotalNum, 4);//最后一块次序数
-        memcpy(&SendBuffer[4], &TotalNum, 4);//总包数
-        memcpy(&SendBuffer[8], &LastBlock, 4);
-        file.read(&SendBuffer[12],LastBlock);
-        m_Socket->write(SendBuffer,LastBlock+12);//发送数据
-        m_Socket->waitForBytesWritten();//等待数据发完
-
-
-        file.close();
-
-        delete []SendBuffer;
-        delete []SendPath;
-        SendBuffer = NULL;
-        SendPath = NULL;
-        Fileque->pop();//出队
-
-    }
+    if(ThreadNum<Min){
+     m_Socket[ThreadNum] = server->nextPendingConnection();//为新的连接创建一个发送套接字
+      sendThread[ThreadNum] = new SendThread;//创建线程
+      sendThread[ThreadNum]->start();//启动线程
+        Sender fuck(m_Socket[ThreadNum],&FileWatcher::fileQueue);
+        fuck.sendFile();
+      ++ThreadNum;
+      qDebug()<<ThreadNum;
+  }
 
 }
 
-
-
-
-
-
-//遍历目录下的所有文件，把文件存到map里面去
-void Server::GetFileList(const QString &path)
-{
-    QString fuck = path;
-    QDir dir(fuck);//实例化一个目录对象
-    if(!dir.exists()) //判断路径是否存在
-     {
-         return ;
-     }
-     QStringList filters; //获取所选文件类型过滤器
-     filters<<QString("*.*");
-     QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
-     while(dir_iterator.hasNext())//遍历目录
-     {
-        QString temp = dir_iterator.next();
-        ++mymapLast[temp];
-        Fileque->push(temp);
-     }
-}
-
-
-
-//当有新的连接的时候
-void Server::newConnectionSlot()
-{
-  //  createSendThread.run();
-    m_Socket = server->nextPendingConnection();//创建连接的套接字
-    SendFile();
-}
-
-
-
-
-
-//产生要发送的文件队列
-void Server::showMessage(const QString &path)
-{
-
-
-    //每发生一次变化都要重新监视所有的文件和文件夹
-    // GetFileList(QString("G:/lichao"));//更新监视对象//监视所有文件以及有文件的文件夹
-    WatchEvery(QString::fromStdString(dirpath));
-    QFileInfo fi(path);
-    if(!fi.isFile()){//如果是目录发生了变化，如添加了文件删除了文件等
-        QString qpath (QString::fromStdString(dirpath));
-        QDir dir(qpath);//实例化一个目录对象
-        if(!dir.exists()) //判断路径是否存在
-        {
-            return ;
-        }
-        QStringList filters; //获取所选文件类型过滤器
-        filters<<QString("*.*");
-        QDirIterator dir_iterator(qpath,filters,QDir::Files | QDir::NoSymLinks,  QDirIterator::Subdirectories);
-        while(dir_iterator.hasNext())//遍历目录,找出所有的文件
-        {
-            QString fuck = dir_iterator.next();
-            ++mymapCur[fuck];//把所有文件存到map中
-        }
-
-        //找出比上次map中多出的文件
-        for( auto &w : mymapCur){//如果在当前的这个文件在上一次文件快照的时候没有出现过，那么就把该文件找出来，认为这个文件是刚产生的
-            if(mymapLast.find(w.first) == mymapLast.end()){
-                //qDebug()<<w.first;
-             Fileque->push(w.first);//把变化的文件插入到队列中
-            }
-           // qDebug()<< "Dir:" <<Fileque->size();
-        }
-        mymapLast = mymapCur;//把当前的map作为上次的map记录
-        emit Send();
-        return;
-    }
-
-    //qDebug()<<path;
-     Fileque->push(path);//把变化的文件插入到队列中
-     //qDebug()<< "File:" <<Fileque->size();
-       emit Send();
-}
-
-void Server::sendChange()
-{
-    SendFile();
-
-}
 
 
 
