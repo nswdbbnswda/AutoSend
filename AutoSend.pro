@@ -16,7 +16,9 @@ SOURCES += main.cpp \
     sendthread.cpp \
     filebase.cpp \
     filewatcher.cpp \
-    sender.cpp
+    sender.cpp \
+    mytcpsever.cpp \
+    mytcpsocket.cpp
 
 HEADERS += \
     server.h \
@@ -25,4 +27,6 @@ HEADERS += \
     sendthread.h \
     filebase.h \
     filewatcher.h \
-    sender.h
+    sender.h \
+    mytcpsever.h \
+    mytcpsocket.h

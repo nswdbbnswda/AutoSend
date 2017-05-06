@@ -17,16 +17,18 @@ public:
     virtual  ~FileWatcher();
     void  watchEverything();//监视一个路径下的所有的文件
     void GetFileList(const QString &path);
+
 private slots:
      void findChangefile(const QString &path);//找到变化的文件，并存到队列中
-signals:
-     void newFile(QString);
+
 private:
       QFileSystemWatcher myWatcher;
       std::map<QString,size_t> mymapCur;//当前目录下文件快照
       std::map<QString,size_t> mymapLast;//上一次目录下文件快照
 public:
       static std::queue<QString> fileQueue;////文件队列
+signals:
+      void queueNonEmpty();
 };
 
 #endif // FILEWATCHER_H

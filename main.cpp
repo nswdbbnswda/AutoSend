@@ -15,10 +15,5 @@ int main(int argc, char *argv[])
     Iter fuck;
     fuck.interacter();//启动用户交互线程
 
-
-
-
-
-
     return a.exec();
 }

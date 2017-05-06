@@ -3,7 +3,7 @@
 
 
 
- std::queue<QString> FileWatcher::fileQueue;//定义一个静态队列
+std::queue<QString> FileWatcher::fileQueue;//定义一个静态队列
 
 
 
@@ -54,9 +54,6 @@ void  FileWatcher::watchEverything(){
         myWatcher.addPath(fuck);
     }
     return;
-
-
-
 }
 
 
@@ -84,9 +81,11 @@ void FileWatcher::findChangefile(const QString &path){
        //找出比上次map中多出的文件
       for( auto &w : mymapCur){//如果在当前的这个文件在上一次文件快照的时候没有出现过，那么就把该文件找出来，认为这个文件是刚产生的
           if(mymapLast.find(w.first) == mymapLast.end()){
-             // qDebug()<<w.first;
+          //    qDebug()<<w.first;
             fileQueue.push(w.first);//把变化的文件插入到队列中
-             // emit newFile(w.first);
+           //  qDebug()<<fileQueue.size();
+             //emit newFile(w.first);
+            emit queueNonEmpty();
             }
 
          }
@@ -95,7 +94,9 @@ void FileWatcher::findChangefile(const QString &path){
        return;
       }
     // qDebug()<<path;
+     // qDebug()<<fileQueue.size();
      fileQueue.push(path);//把变化的文件插入到队列中
+      emit queueNonEmpty();
        //emit newSendQueue(fileQueue);//把文件队列发送出去
        // emit newFile(path);
 }

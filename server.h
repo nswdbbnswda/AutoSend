@@ -18,8 +18,6 @@
 #include"sender.h"
 
 
-
-
 class Server : QObject
 {  Q_OBJECT
 public:
@@ -32,10 +30,14 @@ private:
     std::string path, dirpath;
     SendThread *sendThread[Min];
     qint64 ThreadNum;
+    FileWatcher *f1;
+    Sender *fuck;
 signals:
 
 private slots:
      void newConnectionSlot();//对新的TCP连接进行处理
+public slots:
+     void newSendFile();
 
 
 };

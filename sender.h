@@ -13,6 +13,7 @@ class Sender : public QObject
     Q_OBJECT
 public:
     explicit Sender( QTcpSocket *socket, std::queue<QString> *queue);
+    Sender() = default;
     virtual ~Sender();
     void sendFile();//发送文件
 private:

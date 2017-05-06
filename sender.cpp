@@ -3,7 +3,7 @@
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
 
-qDebug()<<"This is Sender";
+
 
 }
 
@@ -22,8 +22,13 @@ if(Fileque){
 void Sender::sendFile()
 {
 
+
+
     qint64 i64FileNum =(qint64)Fileque->size();//显示队列中有几个文件
-    qDebug()<<i64FileNum;
+    //qDebug()<<i64FileNum;
+
+
+
     while(Fileque->size())//有几个文件就发几次
     {
 
@@ -86,4 +91,6 @@ void Sender::sendFile()
     }
 
 
+
 }
+

@@ -2,6 +2,11 @@
 #define SENDTHREAD_H
 #include<QThread>
 #include<QDebug>
+#include<QTcpSocket>
+#include<queue>
+#include"sender.h"
+#include<QTcpServer>
+#include"mytcpsocket.h"
 
 
 
@@ -10,14 +15,13 @@
 class SendThread : public QThread
 {    Q_OBJECT
  public:
-     explicit  SendThread();
+     explicit  SendThread(myTcpSocket *tcpSocket);
      virtual  ~SendThread();
-     void sendFile();//发送文件
      void run();
-
-
-
-
+ private:
+      Sender *sender;
+      myTcpSocket *tcpSock;
+      std::queue<QString> *queueSend;
 
 };
 
