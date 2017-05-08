@@ -15,13 +15,16 @@
 class SendThread : public QThread
 {    Q_OBJECT
  public:
-     explicit  SendThread(myTcpSocket *tcpSocket);
+     explicit  SendThread(int socketDescriptor);
      virtual  ~SendThread();
      void run();
  private:
       Sender *sender;
       myTcpSocket *tcpSock;
-      std::queue<QString> *queueSend;
+      std::queue<QString> queueSend;
+      int socketDescriptor;
+ private slots:
+       void pushFileQueue(QString fileName);//当有新的文件到来的时候把文件插入到队列中
 
 };
 

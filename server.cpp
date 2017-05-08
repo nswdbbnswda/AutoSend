@@ -7,19 +7,20 @@
 #include<Windows.h>
 
 
-
-Server::Server()
+std::string Server::dirpath;//定义静态变量
+Server::Server():ThreadNum(0)
 
 {
    //路径初始化
     std::cout<<"path:";
     std::cin>>dirpath;
 
-    f1 = new  FileWatcher(dirpath);
-    f1->watchEverything();
+    //f1 = new  FileWatcher(dirpath);//启动监视器
+    //f1->watchEverything();
+    FileWatcher::getInstance(dirpath)->watchEverything();//启动监视器
 
    //TCP
-   server = new QTcpServer(this);//创建TCP套接字
+     server = new MyTcpSever;
     if (!server->isListening()){//监听
         if (server->listen(QHostAddress::Any, 5555)){
             std::cout<<"open listen port success!"<<std::endl;
@@ -27,14 +28,8 @@ Server::Server()
         else{ std::cout<<"open listen port fail!"<<std::endl;}
     }
     else{std::cout<<"Function  isListening()  error!"<<std::endl; }
-   connect(server, SIGNAL(newConnection()), this, SLOT(newConnectionSlot()));//当有新的连接的时候，就会执行槽函数
-
-
-
-//   int x = 111;
-//   auto f =[x](int a,int b){return a+b+x;};
-
-   //qDebug()<<f(1,1);
+    connect(server, SIGNAL(newClientConnection(qintptr)), this, SLOT(newConnectionSlot(qintptr)));//当有新的连接的时候，就会执行槽函数
+    qDebug()<<QThread::currentThreadId();
 
 }
 
@@ -49,53 +44,31 @@ Server::~Server(){
         delete[] m_Socket;
     }
 
-if(f1){
-    delete f1;
-}
 
-
-    if(sendThread){
-        delete[] sendThread;
+    if(sendThread1){
+        delete[] sendThread1;
     }
-}
 
-
-
-
-//当有新的连接的时候为这个连接创建一个线程然后把套接字传给这个线程里面的发送器进行发送操作
-void Server::newConnectionSlot(){
-
-
-//    FileWatcher f1 =  FileWatcher(dirpath);
-//    f1.watchEverything();
-
-    if(ThreadNum<Min){
-    m_Socket[ThreadNum] = server->nextPendingConnection();//为新的连接创建一个发送套接字
-//   qDebug()<<m_Socket[ThreadNum];
-//   qDebug()<<&FileWatcher::fileQueue;
-   // qDebug()<<server->socketDescriptor();
-    // sendThread[ThreadNum] = new SendThread( server->socketDescriptor(),&FileWatcher::fileQueue);//创建线程
-     //sendThread[ThreadNum]->start();//启动线程
-       fuck = new Sender(m_Socket[ThreadNum],&FileWatcher::fileQueue);
-      connect(f1,SIGNAL(queueNonEmpty()),this,SLOT(newSendFile()));
-
-
-        fuck->sendFile();
-
-      //  qDebug()<<"quit send function";
-       // qDebug()<<"out of sendFile Fun";
-      // ++ThreadNum;
-    // qDebug()<<ThreadNum;
-  }
-
+    delete FileWatcher::getInstance(Server::dirpath);//释放监视器
 
 
 }
 
-void Server::newSendFile()
+void Server::newConnectionSlot(qintptr ptr1)
 {
-    fuck->sendFile();
+  if(ThreadNum<Min){
+    sendThread1[ThreadNum] = new SendThread(ptr1);//把这个发送套接字传给工作线程
+    sendThread1[ThreadNum]->moveToThread(sendThread1[ThreadNum]);//把这个对象移动到子线程中去，让sendThread1[ThreadNum]对象的槽函数都属于依附子线程
+
+    sendThread1[ThreadNum]->start();//启动子线程
+    ++ThreadNum;
+  }
 }
+
+
+
+
+
 
 
 

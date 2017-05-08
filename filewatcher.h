@@ -9,14 +9,30 @@
 #include<string>
 
 
-//监视类
+//监视类 单例模式
 class FileWatcher : public FileBase{
     Q_OBJECT
 public:
-    FileWatcher(const std::string &s);
-    virtual  ~FileWatcher();
+    static FileWatcher *getInstance(const std::string &s)//静态成员函数,谁都可以调用  调用后会获得一个监视器对象指针
+    {
+        static FileWatcher *m_pInstance;
+        if(m_pInstance == NULL){
+            m_pInstance = new  FileWatcher(s);
+        }           return m_pInstance;
+
+    }
     void  watchEverything();//监视一个路径下的所有的文件
-    void GetFileList(const QString &path);
+    void GetFileList(const QString &path,std::map<QString,size_t> &saveMap);
+    void GetFileList(const QString &path,std::queue<QString> &saveQueue);
+    virtual  ~FileWatcher();
+
+ private:
+    FileWatcher(const std::string &s);
+    FileWatcher() = default;
+
+//    void  watchEverything();//监视一个路径下的所有的文件
+//    void GetFileList(const QString &path,std::map<QString,size_t> &saveMap);
+//    void GetFileList(const QString &path,std::queue<QString> &saveQueue);
 
 private slots:
      void findChangefile(const QString &path);//找到变化的文件，并存到队列中
@@ -28,7 +44,7 @@ private:
 public:
       static std::queue<QString> fileQueue;////文件队列
 signals:
-      void queueNonEmpty();
+      void fileChange(QString);
 };
 
 #endif // FILEWATCHER_H

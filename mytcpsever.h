@@ -12,6 +12,11 @@ public:
     virtual ~MyTcpSever();
 protected:
     void incomingConnection(qintptr socketDescriptor);
+private:
+  //  SendThread *thread;
+signals:
+    void newClientConnection(qintptr socketDescriptor);
+
 
 
 };

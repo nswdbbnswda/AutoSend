@@ -1,12 +1,13 @@
 #ifndef MYTCPSOCKET_H
 #define MYTCPSOCKET_H
 #include<QTcpSocket>
+#include<QDebug>
 
 
 class myTcpSocket : public QTcpSocket
 {Q_OBJECT
 public:
-    explicit myTcpSocket(qintptr socketDescriptor);
+    explicit myTcpSocket();
     virtual ~myTcpSocket();
 };
 
