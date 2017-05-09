@@ -59,7 +59,7 @@ void Sender::sendFile()
 
         m_Socket->write(SendPath,path.length()+4);//发送文件名
 
-        if(!m_Socket->waitForBytesWritten())//等待数据发完
+        if(!m_Socket->waitForBytesWritten(600000))//等待数据发完  超过10分钟自己不发了，直接返回，网太差
         {
             return;
         }
@@ -76,7 +76,7 @@ void Sender::sendFile()
             m_Socket->write(SendBuffer,8388608+12);
 
 
-            if(!m_Socket->waitForBytesWritten()){  //等待数据发送完
+            if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发送完
                 return ;
             }
 
@@ -92,7 +92,7 @@ void Sender::sendFile()
 
         m_Socket->write(SendBuffer,LastBlock+12);//发送数据
 
-        if(!m_Socket->waitForBytesWritten()){  //等待数据发完 ,如果断开连接就返回
+        if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发完 ,如果断开连接就返回
             return;
         }
 

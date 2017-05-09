@@ -25,7 +25,7 @@ public:
     explicit Server();
     virtual ~Server();
 private:
-    enum ThreadMaxNum{Min = 10,Mind = 20,Max = 30,Super = 1000};
+    enum ThreadMaxNum{Min = 100,Mind = 20,Max = 30,Super = 1000};
     //QTcpServer *server;//监听套接字
     MyTcpSever *server;
     QTcpSocket *m_Socket[Min];//连接套接字
