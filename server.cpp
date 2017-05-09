@@ -29,7 +29,7 @@ Server::Server():ThreadNum(0)
     }
     else{std::cout<<"Function  isListening()  error!"<<std::endl; }
     connect(server, SIGNAL(newClientConnection(qintptr)), this, SLOT(newConnectionSlot(qintptr)));//当有新的连接的时候，就会执行槽函数
-    qDebug()<<QThread::currentThreadId();
+    //qDebug()<<QThread::currentThreadId();
 
 }
 

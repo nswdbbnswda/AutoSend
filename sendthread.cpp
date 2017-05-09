@@ -54,7 +54,7 @@ exec();       //进入事件循环
 void SendThread::pushFileQueue(QString fileName)
 {
 
-    qDebug()<<QThread::currentThreadId();
+    //qDebug()<<QThread::currentThreadId();
     queueSend.push(fileName);
     sender->sendFile();
 }

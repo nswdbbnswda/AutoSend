@@ -58,7 +58,13 @@ void Sender::sendFile()
 
 
         m_Socket->write(SendPath,path.length()+4);//发送文件名
-        m_Socket->waitForBytesWritten();//等待数据发完
+
+        if(!m_Socket->waitForBytesWritten())//等待数据发完
+        {
+            return;
+        }
+
+
 
         //发送数据
         for (qint32 i = 1; temp> 0; temp--,i++){
@@ -68,7 +74,12 @@ void Sender::sendFile()
             file.read(&SendBuffer[12],8388608);//读取数据
 
             m_Socket->write(SendBuffer,8388608+12);
-            m_Socket->waitForBytesWritten();  //等待数据发送完
+
+
+            if(!m_Socket->waitForBytesWritten()){  //等待数据发送完
+                return ;
+            }
+
 
         }
         memcpy(SendBuffer, &TotalNum, 4);//最后一块次序数
@@ -80,7 +91,12 @@ void Sender::sendFile()
 
 
         m_Socket->write(SendBuffer,LastBlock+12);//发送数据
-        m_Socket->waitForBytesWritten();//等待数据发完
+
+        if(!m_Socket->waitForBytesWritten()){  //等待数据发完 ,如果断开连接就返回
+            return;
+        }
+
+
 
         file.close();
         delete []SendBuffer;

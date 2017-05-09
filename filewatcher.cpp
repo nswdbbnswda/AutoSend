@@ -11,7 +11,7 @@ FileWatcher::FileWatcher(const std::string &s):FileBase(s)
 {
     connect(&myWatcher,SIGNAL(directoryChanged(QString)),this,SLOT(findChangefile(QString)));
     connect(&myWatcher,SIGNAL(fileChanged(QString)),this,SLOT(findChangefile(QString)));
-    GetFileList((QString::fromStdString(strPath)),mymapCur);//遍历一边目录找出所有文件存到Map中作为map第一次记录
+    GetFileList((QString::fromStdString(strPath)),mymapLast);//遍历一边目录找出所有文件存到Map中作为map第一次记录
 
 }
 
@@ -78,7 +78,6 @@ void  FileWatcher::watchEverything(){
 
 //找到变化的文件,存到队列中，然后把这个队列发射出去
 void FileWatcher::findChangefile(const QString &path){
-    qDebug()<<"Success";
 
      watchEverything(); //每发生一次变化都要重新监视所有的文件和文件夹
      QFileInfo fi(path);
