@@ -25,12 +25,11 @@ public:
     explicit Server();
     virtual ~Server();
 private:
-    enum ThreadMaxNum{Min = 100,Mind = 20,Max = 30,Super = 1000};
-    //QTcpServer *server;//监听套接字
+    enum ThreadMaxNum{Min = 1000000,Mind = 20,Max = 30,Super = 1000};
+
     MyTcpSever *server;
     QTcpSocket *m_Socket[Min];//连接套接字
     std::string path;
-   // std::string dirpath;
     SendThread *sendThread1[Min];
     qint64 ThreadNum;
     FileWatcher *f1;

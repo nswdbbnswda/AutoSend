@@ -12,7 +12,7 @@
 
 SendThread::SendThread(int socketDescriptor)
 {
-     this -> socketDescriptor = socketDescriptor;//设置套接字描述符
+     this ->socketDescriptor = socketDescriptor;//设置套接字描述符
 }
 
 
@@ -36,8 +36,14 @@ SendThread::~SendThread()
 void SendThread::run()
 {
 
+
+
+
 tcpSock = new myTcpSocket;//创建一个套接字
 tcpSock->setSocketDescriptor(socketDescriptor);//为这个套接字设置套接字描述符
+
+//connect(tcpSock,SIGNAL(disconnected()),this,SLOT(deleteLater()));//如果断开连接了，清理资源  //测试结果是加了这两句反而内存会变化。
+//connect(tcpSock,SIGNAL(disconnected()),this,SLOT(terminate()));//如果断开连接了，就终止该线程
 
 //使用监视器
 FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
@@ -51,12 +57,19 @@ exec();       //进入事件循环
 
 }
 
+
+//当队列中有新的文件被添加进来后，触发这个槽函数,重新启动文件发射器
 void SendThread::pushFileQueue(QString fileName)
 {
 
     //qDebug()<<QThread::currentThreadId();
     queueSend.push(fileName);
     sender->sendFile();
+}
+
+void SendThread::Show()
+{
+    qDebug()<<"disconnected!";
 }
 
 

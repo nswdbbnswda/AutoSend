@@ -1,4 +1,5 @@
 #include "filewatcher.h"
+#include<iostream>
 
 
 
@@ -12,6 +13,8 @@ FileWatcher::FileWatcher(const std::string &s):FileBase(s)
     connect(&myWatcher,SIGNAL(directoryChanged(QString)),this,SLOT(findChangefile(QString)));
     connect(&myWatcher,SIGNAL(fileChanged(QString)),this,SLOT(findChangefile(QString)));
     GetFileList((QString::fromStdString(strPath)),mymapLast);//遍历一边目录找出所有文件存到Map中作为map第一次记录
+    qDebug()<<"File number:"<<mymapLast.size();//显示文件个数
+
 
 }
 
@@ -22,24 +25,36 @@ FileWatcher::~FileWatcher()
 
 
 //遍历目录下的所有文件，把文件存到map里面去
-void FileWatcher::GetFileList(const QString &path, std::map<QString,size_t> &saveMap){
+void FileWatcher::GetFileList(const QString &path, std::map<QString,size_t> &saveMap)
+{
     QString fuck = path;
     QDir dir(fuck);//实例化一个目录对象
     if(!dir.exists()) //判断路径是否存在
      {
          return ;
      }
-     QStringList filters; //获取所选文件类型过滤器
-     filters<<QString("*.*");
-     QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
+    // QStringList filters; //获取所选文件类型过滤器
+    /// filters<<QString("*.*");//
+    // QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks|, QDirIterator::Subdirectories);
+  //   QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks|QDir::Hidden, QDirIterator::Subdirectories);//能筛出隐藏文件,但是不能筛出不带后缀名的文件
+      //QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+      QDirIterator dir_iterator(fuck,QDir::Files|QDir::Hidden,QDirIterator::Subdirectories);//能筛出所有文件,不能遍历出快捷方式QDir::NoSymLinks
+      //QDirIterator dir_iterator(fuck,QDir::Files |QDir::Hidden);//能筛出所有文件
+
      while(dir_iterator.hasNext())//遍历目录
      {
-        QString temp = dir_iterator.next();
-        ++saveMap[temp];//把遍历出来的文件存到map中
-
+       QString temp = dir_iterator.next();
+      ++saveMap[temp];//把遍历出来的文件存到map中
      }
+
+
+
 }
 
+
+
+
+//根据给定的路径遍历文件夹,并且把遍历到的文件列表存到队列中
 void FileWatcher::GetFileList(const QString &path, std::queue<QString> &saveQueue)
 {
     QString fuck = path;
@@ -50,13 +65,16 @@ void FileWatcher::GetFileList(const QString &path, std::queue<QString> &saveQueu
      }
      QStringList filters; //获取所选文件类型过滤器
      filters<<QString("*.*");
-     QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
+    // QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
+     QDirIterator dir_iterator(fuck,QDir::Files | QDir::NoSymLinks|QDir::Hidden, QDirIterator::Subdirectories);//能筛出所有文件
+
      while(dir_iterator.hasNext())//遍历目录
      {
         QString temp = dir_iterator.next();
        saveQueue.push(temp);//把遍历出来的文件都存储到队列中
      }
 }
+
 
 
 
@@ -76,6 +94,7 @@ void  FileWatcher::watchEverything(){
 
 
 
+
 //找到变化的文件,存到队列中，然后把这个队列发射出去
 void FileWatcher::findChangefile(const QString &path){
 
@@ -90,7 +109,8 @@ void FileWatcher::findChangefile(const QString &path){
         }
       QStringList filters; //获取所选文件类型过滤器
       filters<<QString("*.*");
-       QDirIterator dir_iterator(qpath,filters,QDir::Files | QDir::NoSymLinks,  QDirIterator::Subdirectories);
+      // QDirIterator dir_iterator(qpath,filters,QDir::Files | QDir::NoSymLinks,  QDirIterator::Subdirectories);
+       QDirIterator dir_iterator(qpath,QDir::Files | QDir::NoSymLinks|QDir::Hidden, QDirIterator::Subdirectories);//能筛出所有文件
        while(dir_iterator.hasNext())//遍历目录,找出所有的文件
         {
            QString fuck = dir_iterator.next();
@@ -112,6 +132,27 @@ void FileWatcher::findChangefile(const QString &path){
       emit fileChange(path);//把变化的文件名字作为信号发射出去
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

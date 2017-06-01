@@ -22,8 +22,6 @@ if(Fileque){
 void Sender::sendFile()
 {
 
-
-
     qint64 i64FileNum =(qint64)Fileque->size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
 
@@ -105,6 +103,8 @@ void Sender::sendFile()
         SendPath = NULL;
         Fileque->pop();//出队
     }
+
+    qDebug()<<"OK";
 
 
 

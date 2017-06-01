@@ -44,7 +44,6 @@ Server::~Server(){
         delete[] m_Socket;
     }
 
-
     if(sendThread1){
         delete[] sendThread1;
     }
@@ -56,6 +55,7 @@ Server::~Server(){
 
 void Server::newConnectionSlot(qintptr ptr1)
 {
+
   if(ThreadNum<Min){
     sendThread1[ThreadNum] = new SendThread(ptr1);//把这个发送套接字传给工作线程
     sendThread1[ThreadNum]->moveToThread(sendThread1[ThreadNum]);//把这个对象移动到子线程中去，让sendThread1[ThreadNum]对象的槽函数都属于依附子线程
@@ -63,6 +63,7 @@ void Server::newConnectionSlot(qintptr ptr1)
     sendThread1[ThreadNum]->start();//启动子线程
     ++ThreadNum;
   }
+
 }
 
 

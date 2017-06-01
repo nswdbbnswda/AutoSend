@@ -25,6 +25,7 @@ class SendThread : public QThread
       int socketDescriptor;
  private slots:
        void pushFileQueue(QString fileName);//当有新的文件到来的时候把文件插入到队列中
+        void Show();
 
 };
 
