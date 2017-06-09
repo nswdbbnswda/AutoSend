@@ -1,19 +1,23 @@
 #include "client.h"
 #include<QHostAddress>
 #include<QDebug>
+#include <QCoreApplication>
 //启动客户端后就开始连接服务端
-Client::Client():NameLength(0),ReceiveName(NULL),m_pSocket(NULL),ReceiveFileNum(NULL),num(0),CurrentNum(0),TotalNum(0),
-    LastBlock(0),port(0),Flag(0),TotalByte(0),WrittenByte(0),FileNumber(0)
+Client::Client(const std::string strIpAddr):NameLength(0),ReceiveName(NULL),m_pSocket(NULL),ReceiveFileNum(NULL),num(0),CurrentNum(0),TotalNum(0),
+    LastBlock(0),port(0),Flag(0),TotalByte(0),WrittenByte(0),FileNumber(0) ,ipAddr(strIpAddr)
 {
-    std::cout<<"IP:";
-    std::cin>>ipAddr;
+   // std::cout<<"IP:";
+   // std::cin>>ipAddr;
    // ipAddr = std::string("127.0.0.1");
     m_pSocket = new QTcpSocket();//创建客户端套接字
     m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),5555);//发起连接
+  // connect(m_pSocket,SIGNAL(),this,SLOT(test()));//断开连接了退出
+
    //连接信号和槽
     connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
     emit DataComing();//发送信号，文件来了
    // connect(m_pSocket,SIGNAL(readyRead()),this,SLOT(test()));
+    //connect(m_pSocket,SIGNAL(connected()),this,SLOT(test()));//断开连接了退出
 }
 
 
@@ -29,12 +33,15 @@ Client::~Client(){
 
 //接收数据
 void Client::ReceiveData(){
+
     while(1)//一直等待接收数据
     {
-        //while(m_pSocket->waitForReadyRead(50000))//当有数据可读时
-        m_pSocket->waitForReadyRead();
+
+        //if(m_pSocket->disconnect()){  std::cout<<"DIS"<<std::endl;}
+        m_pSocket->waitForReadyRead();//先等一会直到有数据过来
         while(m_pSocket->bytesAvailable())//有数据可读的时候才进来
         {
+
             while(m_pSocket->bytesAvailable()<4){
                 m_pSocket->waitForReadyRead();
             }
@@ -99,18 +106,15 @@ void Client::ReceiveData(){
                 // vTemp.clear();
                 //emit  DataWritten();
             }
-            file.close();
+            file.close();//完成一个文件的读写
+           // m_pSocket->waitForReadyRead();//等待下一个文件的数据流到来
         }
+
+       // exit(0);//如果一定时间内都没有数据可以读了,那么就认为服务端不再有数据进行发送了，客户端就可以退出了
 
     }
 
 }
-
-
-
-
-
-
 
 
 
@@ -123,11 +127,13 @@ void  Client::UpProgress(){
 
 
 
-
-
 void Client::test(){ 
 
+
 }
+
+
+
 
 
 

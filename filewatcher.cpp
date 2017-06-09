@@ -10,8 +10,8 @@ std::queue<QString> FileWatcher::fileQueue;//定义一个静态队列
 
 FileWatcher::FileWatcher(const std::string &s):FileBase(s)
 {
-    connect(&myWatcher,SIGNAL(directoryChanged(QString)),this,SLOT(findChangefile(QString)));
-    connect(&myWatcher,SIGNAL(fileChanged(QString)),this,SLOT(findChangefile(QString)));
+   // connect(&myWatcher,SIGNAL(directoryChanged(QString)),this,SLOT(findChangefile(QString)));
+   // connect(&myWatcher,SIGNAL(fileChanged(QString)),this,SLOT(findChangefile(QString)));
     GetFileList((QString::fromStdString(strPath)),mymapLast);//遍历一边目录找出所有文件存到Map中作为map第一次记录
     qDebug()<<"File number:"<<mymapLast.size();//显示文件个数
 
@@ -46,9 +46,6 @@ void FileWatcher::GetFileList(const QString &path, std::map<QString,size_t> &sav
        QString temp = dir_iterator.next();
       ++saveMap[temp];//把遍历出来的文件存到map中
      }
-
-
-
 }
 
 

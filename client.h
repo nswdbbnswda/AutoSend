@@ -11,7 +11,7 @@
 class Client : QObject
 {Q_OBJECT
 public:
-    explicit Client();
+    explicit Client(const std::string strIpAddr);
     virtual~Client();
 private:
     QTcpSocket *m_pSocket;
@@ -31,6 +31,7 @@ public slots:
 signals:
     void DataComing();
     void DataWritten();
+
 };
 
 #endif // CLIENT_H

@@ -12,12 +12,10 @@ Server::Server():ThreadNum(0)
 
 {
    //路径初始化
-    std::cout<<"path:";
-    std::cin>>dirpath;
+   // std::cout<<"path:";
+    //std::cin>>dirpath;
 
-    //f1 = new  FileWatcher(dirpath);//启动监视器
-    //f1->watchEverything();
-    FileWatcher::getInstance(dirpath)->watchEverything();//启动监视器
+    FileWatcher::getInstance(dirpath);//启动文件遍历器
 
    //TCP
      server = new MyTcpSever;

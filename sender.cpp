@@ -3,8 +3,6 @@
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
 
-
-
 }
 
 Sender::~Sender()

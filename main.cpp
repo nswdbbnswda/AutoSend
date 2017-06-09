@@ -6,15 +6,20 @@
 #include"filebase.h"
 #include"filewatcher.h"
 #include"sender.h"
+#include<iostream>
+#include<Windows.h>
+using namespace std;
 
 
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+
     Iter fuck;
-    fuck.interacter();//启动用户交互线程
+    fuck.interacter(argc,argv);//启动用户交互线程
 
 
     return a.exec();
+
 }
