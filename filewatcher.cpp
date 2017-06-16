@@ -16,6 +16,7 @@ FileWatcher::FileWatcher(const std::string &s):FileBase(s)
     qDebug()<<"File number:"<<mymapLast.size();//显示文件个数
 
 
+
 }
 
 FileWatcher::~FileWatcher()
@@ -44,6 +45,7 @@ void FileWatcher::GetFileList(const QString &path, std::map<QString,size_t> &sav
      while(dir_iterator.hasNext())//遍历目录
      {
        QString temp = dir_iterator.next();
+
       ++saveMap[temp];//把遍历出来的文件存到map中
      }
 }

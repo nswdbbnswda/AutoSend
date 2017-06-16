@@ -19,6 +19,8 @@ public:
 private:
     QTcpSocket *m_Socket;//用于发送的套接字
     std::queue<QString> *Fileque;//待发送的文件队列
+public slots:
+    void lostConnection();
 
 
 

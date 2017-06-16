@@ -48,6 +48,7 @@ FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Se
 sender = new Sender(tcpSock,&queueSend);
 sender->sendFile();//发送文件
 
+
 //QCoreApplication::exit();
 
 exec();       //进入事件循环

@@ -1,8 +1,9 @@
 #include "sender.h"
+#include<QCoreApplication.h>
 //传输发送套接字和队列的指针才能进行启动sender
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
-
+connect(m_Socket,SIGNAL(disconnected()),SLOT(lostConnection()));
 }
 
 Sender::~Sender()
@@ -23,11 +24,13 @@ void Sender::sendFile()
     qint64 i64FileNum =(qint64)Fileque->size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
 
-
+    //告诉对面有多少个文件要接收
+    char *FileNum = new char[i64FileNum];//文件个数数组
+    memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
+    m_Socket->write(FileNum,8);//发送文件名
 
     while(Fileque->size())//有几个文件就发几次
     {
-
         //路径获取
         QString fullpath =  Fileque->front();//队列头文件的全路径
         std::string path =  fullpath.toStdString();//把全路径从QString格式转换成string
@@ -75,8 +78,6 @@ void Sender::sendFile()
             if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发送完
                 return ;
             }
-
-
         }
         memcpy(SendBuffer, &TotalNum, 4);//最后一块次序数
         memcpy(&SendBuffer[4], &TotalNum, 4);//总包数
@@ -91,9 +92,6 @@ void Sender::sendFile()
         if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发完 ,如果断开连接就返回
             return;
         }
-
-
-
         file.close();
         delete []SendBuffer;
         delete []SendPath;
@@ -101,10 +99,21 @@ void Sender::sendFile()
         SendPath = NULL;
         Fileque->pop();//出队
     }
+    delete FileNum;
+
+
+
 
     qDebug()<<"OK";
+}
 
 
 
+
+
+void Sender::lostConnection()
+{
+      qDebug()<<"lost connection";
+    QCoreApplication::exit();//退出程序
 }
 
