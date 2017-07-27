@@ -1,107 +1,153 @@
 #include "client.h"
 #include<QHostAddress>
 #include<QDebug>
+#include <QCoreApplication>
 //启动客户端后就开始连接服务端
-Client::Client()
+Client::Client(const std::string strIpAddr,const std::string  inputPort):NameLength(0),ReceiveName(NULL),m_pSocket(NULL),ReceiveFileNum(NULL),num(0),CurrentNum(0),TotalNum(0),
+    LastBlock(0),Flag(0),TotalByte(0),WrittenByte(0),FileNumber(0) ,ipAddr(strIpAddr)
 {
-    std::cout<<"IP:";
-    std::cin>>ipAddr;
+
+    logFile = new QFile(QCoreApplication::applicationDirPath()+"/log.txt");//建立日志文件
+    logFile->open(QIODevice::WriteOnly | QIODevice::Append);
+
+    port = atoi(inputPort.c_str());//把端口号从string 类型转换成 整型
     m_pSocket = new QTcpSocket();//创建客户端套接字
-    m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),5555);//发起连接
+    m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
+    connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(test()));//断开连接了退出
+
    //连接信号和槽
     connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
     emit DataComing();//发送信号，文件来了
-    //connect(m_pSocket,SIGNAL(readyRead()),this,SLOT(test()));
+    connect(m_pSocket,SIGNAL(connected()),this,SLOT(test()));//断开连接了退出
 
 }
 
 
-//destuctor
-Client::~Client()
-{
+
+Client::~Client(){
     if(m_pSocket) {
         delete m_pSocket;
         m_pSocket = NULL;
     }
-
+    if(logFile){
+        delete logFile;
+        logFile = NULL;
+    }
 }
 
 
 //接收数据
-void Client::ReceiveData()
-{
-   // connect(this, SIGNAL(DataWritten()),this, SLOT(UpProgress()));//当有新的数据写入的时候，会显示进度
+void Client::ReceiveData(){
 
-  m_pSocket->waitForReadyRead();//阻塞等待3秒
-  nTemp = m_pSocket->read(8);//读8个字节，储存的是文件的数量
-  ReceiveFileNum = nTemp.data();
-  memcpy(&FileNumber, ReceiveFileNum,8);//NameLength储存的是文件名字所占的字节数量
+        //等待发送端把文件的个个数发送的过来
+       QByteArray  fileNum;
+       qint64  totalFileNum = 0;
 
- //有多少个文件就进行多少次
-  for(int i = 0;i<FileNumber;++i)
-    {
-    m_pSocket->waitForReadyRead();//阻塞等待3秒
-    vTemp=m_pSocket->read(4);//读4个字节，储存的是文件名字的字节数量
-    ReceiveName=vTemp.data();
-    memcpy(&NameLength,ReceiveName,4);//NameLength储存的是文件名字所占的字节数量
-    vTemp=m_pSocket->read(NameLength);//读文件名字  读NameLength个字节
-    vTemp.remove(0,1);//删除第一个字节（盘符）
-    vTemp.insert(0,QByteArray("E"));//更改为E盘符
-    std::cout<<vTemp.toStdString()<<std::endl;//显示文件全路径名(包括文件名)
+        while(m_pSocket->bytesAvailable()<8){
+            m_pSocket->waitForReadyRead();
+        }
 
-    //搞定路径
-    QString fullPath(vTemp);//QByteArray 转换成 QString
-    KoPath(fullPath);//搞定路径问题,如果没有则创建
+        fileNum = m_pSocket->read(8);//读8个字节的文件数量
+        ReceiveFileNum = fileNum.data();
+        memcpy(&totalFileNum,ReceiveFileNum,8);
+        qDebug()<<totalFileNum;
 
-    //在硬盘上建立该文件
-    QFile file(vTemp.data());
-    file.open(QFile::WriteOnly);//只写方式打开
-    //读12个字节的文件头信息
-    vTemp=m_pSocket->read(12);//读12字节
-    ReceiveHead=vTemp.data();//类型转换QByteArray到char *
-    memcpy(&CurrentNum,ReceiveHead,4);
-    memcpy(&TotalNum,&ReceiveHead[4],4);//整个文件的包的数量
-    memcpy(&LastBlock,&ReceiveHead[8],4);//当前文件最后一个包的字节数
-    TotalByte=(TotalNum-1)*8388608+LastBlock;//当前文件的总的字节数量
-//    //显示文件信息
-//    qDebug()<<TotalNum;
-//    qDebug()<<LastBlock;
-//    qDebug()<<TotalByte;
-    if(TotalNum>1){
-        while(TotalNum-1){
-            vTemp=m_pSocket->read(8388608); //读取838608个字节
-            while(vTemp.length()<8388608){//如果缓存中没有那么多数据
-                m_pSocket->waitForReadyRead();//缓冲
-                vTemp.append(m_pSocket->read(8388608-vTemp.length()));
+
+
+
+        //循环接收每一个文件
+        while(totalFileNum)
+        {
+
+        //if(m_pSocket->disconnect()){  std::cout<<"DIS"<<std::endl;}
+        m_pSocket->waitForReadyRead();//先等一会直到有数据过来
+       // while(m_pSocket->bytesAvailable())//有数据可读的时候才进来
+
+
+            while(m_pSocket->bytesAvailable()<4){
+                m_pSocket->waitForReadyRead();
             }
-            xTemp=m_pSocket->read(12);
-            WrittenByte+=file.write(vTemp);//写入数据
-           // emit  DataWritten();
-            TotalNum--;
-            //存在一个BUG 尚未进行对12字节处理
-        }
-        vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
-        while(vTemp.length()<LastBlock){//判断是否够最后一块数据长度
-            m_pSocket->waitForReadyRead();//缓冲
-            vTemp.append(m_pSocket->read(LastBlock-vTemp.length()));//拼接数组
-        }
-        WrittenByte+=file.write(vTemp);
-        //emit  DataWritten();
-    }
+            vTemp=m_pSocket->read(4);//读4个字节，储存的是文件名字的字节数量
+            ReceiveName=vTemp.data();
+            memcpy(&NameLength,ReceiveName,4);//NameLength储存的是文件名字所占的字节数量
+            while(m_pSocket->bytesAvailable()<NameLength){
+                m_pSocket->waitForReadyRead();
+            }
+            vTemp=m_pSocket->read(NameLength);//读文件名字  读NameLength个字节
+            vTemp.remove(0,1);//删除第一个字节（盘符）
+            vTemp.insert(0,QByteArray("D"));//更改为E盘符
+            //搞定路径
+            QString fullPath(vTemp);//QByteArray 转换成 QString
+            KoPath(fullPath);//搞定路径问题,如果没有则创建
 
-    else{//处理最后一个数据块
-        vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
-        while(vTemp.length()<LastBlock){//判断是否够最后一块数据长度
-            m_pSocket->waitForReadyRead();//缓冲
-            vTemp.append(m_pSocket->read(LastBlock-vTemp.length()));//拼接数组
-        }
-        WrittenByte+=file.write(vTemp);
-        //emit  DataWritten();
-    }
-    file.close();
+            qDebug()<<fullPath;
+            //在硬盘上建立该文件
+            QFile file(vTemp.data());          
+            file.open(QFile::WriteOnly);//只写方式打开
+            logFile->write(vTemp); //写入日志文件
+            logFile->write("\r\n");
 
-    }
-  qDebug()<<"OK";
+
+            //读12个字节的文件头信息
+            while(m_pSocket->bytesAvailable()<12){
+                m_pSocket->waitForReadyRead();
+            }
+            vTemp=m_pSocket->read(12);//读12字节
+            ReceiveHead=vTemp.data();//类型转换QByteArray到char *
+            memcpy(&CurrentNum,ReceiveHead,4);
+            memcpy(&TotalNum,&ReceiveHead[4],4);//整个文件的包的数量
+            memcpy(&LastBlock,&ReceiveHead[8],4);//当前文件最后一个包的字节数
+            TotalByte=(TotalNum-1)*8388608+LastBlock;//当前文件的总的字节数量
+
+            if(TotalNum>1){
+                while(TotalNum-1){
+                    while(m_pSocket->bytesAvailable()<8388608){
+                        m_pSocket->waitForReadyRead();
+                    }
+                    vTemp=m_pSocket->read(8388608); //读取838608个字节
+                    //vTemp.clear();
+                    while(m_pSocket->bytesAvailable()<12){
+                        m_pSocket->waitForReadyRead();
+                    }
+                    xTemp=m_pSocket->read(12);
+                    xTemp.clear();
+                    WrittenByte+=file.write(vTemp);//写入数据
+                    TotalNum--;
+                    //存在一个BUG 尚未进行对12字节处理
+                }
+                while(m_pSocket->bytesAvailable()<LastBlock){
+                    m_pSocket->waitForReadyRead();
+                }
+                vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
+                WrittenByte+=file.write(vTemp);
+                // vTemp.clear();
+            }
+
+            else{//处理最后一个数据块
+                while(m_pSocket->bytesAvailable()<LastBlock){
+                    m_pSocket->waitForReadyRead();
+                }
+                vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
+                WrittenByte+=file.write(vTemp);
+                // vTemp.clear();
+                //emit  DataWritten();
+            }
+
+            file.close();//完成一个文件的读写
+
+           // m_pSocket->waitForReadyRead();//等待下一个文件的数据流到来
+              totalFileNum--;
+        }
+
+       // exit(0);//如果一定时间内都没有数据可以读了,那么就认为服务端不再有数据进行发送了，客户端就可以退出了
+
+
+
+
+        qDebug()<<"OK";
+        m_pSocket->close();//关闭套接字
+        logFile->close();//关闭日志文件
+        exit(0);//退出程序
 
 }
 
@@ -114,29 +160,33 @@ void  Client::UpProgress(){
     std::cout<<">";
 }
 
-void Client::test()
-{
-qDebug()<<m_pSocket->bytesAvailable();
+
+
+void Client::test(){ 
+
+qDebug()<<"lost connection";
+
 
 }
+
+
+
 
 
 
 //输入:文件全路径，输出:在该路径上创建文件
 bool  Client::KoPath(const QString &dirName)//文件全路径(包含文件名）
 {
-   QString fullPath;
-   QFileInfo fileInfo(dirName);
-   fullPath = fileInfo.absolutePath();//全路径，不包括文件名
-   QDir dir(fullPath);//创建目录对象
-    if(dir.exists())
-    {
-      return true;
+    QString fullPath;
+    QFileInfo fileInfo(dirName);
+    fullPath = fileInfo.absolutePath();//全路径，不包括文件名
+    QDir dir(fullPath);//创建目录对象
+    if(dir.exists()){
+        return true;
     }
-    else
-    {
-       bool ok = dir.mkpath(fullPath);//创建多级目录
-       return ok;
+    else{
+        bool ok = dir.mkpath(fullPath);//创建多级目录
+        return ok;
     }
 }
 

@@ -3,6 +3,8 @@
 #include<stdio.h>
 #include"server.h"
 #include"client.h"
+#include<iostream>
+using namespace  std;
 
 
 Iter::Iter()
@@ -23,69 +25,84 @@ Iter::~Iter()
     }
 }
 
-void Iter::interacter()
+void Iter::interacter(int iArgc ,char **p_cCmd)
 {
     char com[20], *fileName;
     int count;
+    if(iArgc <=1){cout<<"Lack of param!"<<endl; return ;}
+    if(NULL == p_cCmd){ printf("No available param from argv!");  return;}
 
-   while(1)
+  // while(1)
    {
         printf("\n(AutoSend):");
-        fgets(com, sizeof(com), stdin);//
-        transfStr(com, 1); //去掉开头结尾空白字符，变成全小写
 
-        if (!strcmp(com, "list") ||
-                !strcmp(com, "ls"))
+
+
+
+      // cout<<*(p_cCmd+2)<<endl;
+       //cout<<*(p_cCmd+3)<<endl;
+
+
+
+        //fgets(com, sizeof(com), stdin);//
+        //transfStr(com, 1); //去掉开头结尾空白字符，变成全小写
+
+        if (!strcmp(*(p_cCmd+1), "list") ||
+                !strcmp(*(p_cCmd+1), "ls"))
         {
 
         }
-        else if (!strcmp(com, "quit") ||
-                 !strcmp(com, "q"))
-        {
-
-         // break;
-        }
-        else if (!strcmp(com, "refresh") ||
-                 !strcmp(com, "rf"))
+        else if (!strcmp(*(p_cCmd+1), "quit") ||
+                 !strcmp(*(p_cCmd+1), "q"))
         {
 
         }
-        else if (!strcmp(com, "talk") ||
-                 !strcmp(com, "tk"))
+        else if (!strcmp(*(p_cCmd+1), "refresh") ||
+                 !strcmp(*(p_cCmd+1), "rf"))
         {
 
         }
-        else if (!strcmp(com, "sendfile") ||
-                 !strcmp(com, "sf"))
+        else if (!strcmp(*(p_cCmd+1), "talk") ||
+                 !strcmp(*(p_cCmd+1), "tk"))
         {
 
         }
-        else if (!strcmp(com, "getfile") ||
-                 !strcmp(com, "gf"))
+        else if (!strcmp(*(p_cCmd+1), "sendfile") ||
+                 !strcmp(*(p_cCmd+1), "sf"))
         {
 
         }
-        else if (!strcmp(com, "ceaseSend") ||
-                 !strcmp(com, "cs"))
+        else if (!strcmp(*(p_cCmd+1), "getfile") ||
+                 !strcmp(*(p_cCmd+1), "gf"))
         {
 
         }
-        else if (!strcmp(com, "server") ||
-                 !strcmp(com, "s"))
+        else if (!strcmp(*(p_cCmd+1), "ceaseSend") ||
+                 !strcmp(*(p_cCmd+1), "cs"))
         {
-         server = new Server;
-         break;
 
         }
-        else if (!strcmp(com, "client") ||
-                 !strcmp(com, "c"))
+        else if (!strcmp(*(p_cCmd+1), "server") ||
+                 !strcmp(*(p_cCmd+1), "s"))
         {
-          client  = new Client;
-          break;
+
+           // cout<<*(p_cCmd+2)<<endl;
+
+         Server::dirpath = *(p_cCmd+3);
+
+         server = new Server(*(p_cCmd+2));//把端口号传给Server类
 
         }
-       else if (!strcmp(com, "help") ||
-                 !strcmp(com, "h"))
+        else if (!strcmp(*(p_cCmd+1), "client") ||
+                 !strcmp(*(p_cCmd+1), "c"))
+        {
+          client  = new Client(*(p_cCmd+2),*(p_cCmd+3));//client 127.0.0.1 5000
+
+             cout<<"This is Client!"<<endl;
+
+        }
+       else if (!strcmp(*(p_cCmd+1), "help") ||
+                 !strcmp(*(p_cCmd+1), "h"))
             printf(IMHELP);
      }
 }
@@ -111,6 +128,12 @@ void Iter::transfStr(char *dest, int flag)
             ptr++;
         }
 }
+
+
+
+
+
+
 
 
 
