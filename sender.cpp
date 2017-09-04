@@ -3,7 +3,8 @@
 //传输发送套接字和队列的指针才能进行启动sender
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
-connect(m_Socket,SIGNAL(disconnected()),SLOT(lostConnection()));
+connect(m_Socket,SIGNAL(disconnected()),SLOT(LostConnection()));
+finishFlag = false;
 }
 
 Sender::~Sender()
@@ -46,9 +47,9 @@ void Sender::sendFile()
         qint64 TotalByte=BlockNum*8388608+LastBlock;//总字节数
 
 
-        char *SendBuffer=new char[8388608+12];//申请buffer
-        qint32 PathLength=path.length();//储存文件路径字符的长度
-        char *SendPath=new char[PathLength+4];//分配发送路径的buffer,多分配四个字节储存一个整型数
+        char *SendBuffer = new char[8388608+12];//申请buffer
+        qint32 PathLength = path.length();//储存文件路径字符的长度
+        char *SendPath = new char[PathLength+4];//分配发送路径的buffer,多分配四个字节储存一个整型数
 
         //拷贝文件名
         memcpy(SendPath, &PathLength, 4); //将字节长度信息存在前4个字节内
@@ -73,8 +74,6 @@ void Sender::sendFile()
             file.read(&SendBuffer[12],8388608);//读取数据
 
             m_Socket->write(SendBuffer,8388608+12);
-
-
             if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发送完
                 return ;
             }
@@ -83,9 +82,6 @@ void Sender::sendFile()
         memcpy(&SendBuffer[4], &TotalNum, 4);//总包数
         memcpy(&SendBuffer[8], &LastBlock, 4);
         file.read(&SendBuffer[12],LastBlock);
-
-
-
 
         m_Socket->write(SendBuffer,LastBlock+12);//发送数据
 
@@ -102,18 +98,21 @@ void Sender::sendFile()
     delete FileNum;
 
 
-
-
     qDebug()<<"OK";
+    finishFlag = true;
 }
 
 
 
 
 
-void Sender::lostConnection()
-{
-      qDebug()<<"lost connection";
-    QCoreApplication::exit();//退出程序
+void Sender::LostConnection(){
+if( finishFlag) //发完了
+QCoreApplication::exit();//退出程序
+//掉线了
+else{
+qDebug()<<"Lost connection!";
+qDebug()<<"Reconnecting......";
+}
 }
 

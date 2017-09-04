@@ -6,19 +6,20 @@
 Client::Client(const std::string strIpAddr,const std::string  inputPort):NameLength(0),ReceiveName(NULL),m_pSocket(NULL),ReceiveFileNum(NULL),num(0),CurrentNum(0),TotalNum(0),
     LastBlock(0),Flag(0),TotalByte(0),WrittenByte(0),FileNumber(0) ,ipAddr(strIpAddr)
 {
-
-    logFile = new QFile(QCoreApplication::applicationDirPath()+"/log.txt");//建立日志文件
+    finishFlag = false;
+    logFile = new QFile(QCoreApplication::applicationDirPath()+"/RecvLog.txt");//建立日志文件
     logFile->open(QIODevice::WriteOnly | QIODevice::Append);
 
     port = atoi(inputPort.c_str());//把端口号从string 类型转换成 整型
     m_pSocket = new QTcpSocket();//创建客户端套接字
-    m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
-    connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(test()));//断开连接了退出
+   connectToServer();//连接服务器
+
+    connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//断开连接了退出
 
    //连接信号和槽
     connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
     emit DataComing();//发送信号，文件来了
-    connect(m_pSocket,SIGNAL(connected()),this,SLOT(test()));//断开连接了退出
+    connect(m_pSocket,SIGNAL(connected()),this,SLOT(LostConnection()));//断开连接了退出
 
 }
 
@@ -104,14 +105,14 @@ void Client::ReceiveData(){
                     while(m_pSocket->bytesAvailable()<8388608){
                         m_pSocket->waitForReadyRead();
                     }
-                    vTemp=m_pSocket->read(8388608); //读取838608个字节
+                    vTemp = m_pSocket->read(8388608); //读取838608个字节
                     //vTemp.clear();
                     while(m_pSocket->bytesAvailable()<12){
                         m_pSocket->waitForReadyRead();
                     }
                     xTemp=m_pSocket->read(12);
                     xTemp.clear();
-                    WrittenByte+=file.write(vTemp);//写入数据
+                    WrittenByte += file.write(vTemp);//写入数据
                     TotalNum--;
                     //存在一个BUG 尚未进行对12字节处理
                 }
@@ -119,7 +120,7 @@ void Client::ReceiveData(){
                     m_pSocket->waitForReadyRead();
                 }
                 vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
-                WrittenByte+=file.write(vTemp);
+                WrittenByte += file.write(vTemp);
                 // vTemp.clear();
             }
 
@@ -128,7 +129,7 @@ void Client::ReceiveData(){
                     m_pSocket->waitForReadyRead();
                 }
                 vTemp=m_pSocket->read(LastBlock);//第一次读取读最后一块数据
-                WrittenByte+=file.write(vTemp);
+                WrittenByte += file.write(vTemp);
                 // vTemp.clear();
                 //emit  DataWritten();
             }
@@ -143,15 +144,11 @@ void Client::ReceiveData(){
 
 
 
-
+         logFile->close();//关闭日志文件
         qDebug()<<"OK";
+        finishFlag = true;
         m_pSocket->close();//关闭套接字
-        logFile->close();//关闭日志文件
-        exit(0);//退出程序
-
 }
-
-
 
 
 
@@ -162,11 +159,14 @@ void  Client::UpProgress(){
 
 
 
-void Client::test(){ 
-
-qDebug()<<"lost connection";
-
-
+void Client::LostConnection(){
+   if(finishFlag) exit(0);//发送完毕，退出程序
+    else{
+        qDebug()<<"Lost connection!";
+        qDebug()<<"Reconnecting......";
+        connectToServer();//重新连接
+        qDebug()<<"The network connection has been restored!";
+   }
 }
 
 
@@ -187,6 +187,14 @@ bool  Client::KoPath(const QString &dirName)//文件全路径(包含文件名）
     else{
         bool ok = dir.mkpath(fullPath);//创建多级目录
         return ok;
+    }
+}
+
+//发起TCP连接
+void Client::connectToServer(){
+    while(true){
+     m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
+     if(m_pSocket->waitForConnected()) break;//如果连上了服务器，函数返回
     }
 }
 

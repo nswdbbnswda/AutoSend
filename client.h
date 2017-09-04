@@ -23,12 +23,14 @@ private:
     std::string ipAddr;
     qint64 FileNumber;
     QFile *logFile;
+    bool finishFlag;
 private:
     bool  KoPath(const QString &dirName);
+    void  connectToServer();
 public slots:
     void ReceiveData();
     void UpProgress();
-    void test();
+    void LostConnection();
 signals:
     void DataComing();
     void DataWritten();
