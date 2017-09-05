@@ -19,21 +19,24 @@ private:
     char *ReceiveName,*ReceiveFileNum;
     qint32 num,CurrentNum,TotalNum,LastBlock,NameLength;
     char *ReceiveHead;
-    qint32 port,Flag,TotalByte,WrittenByte;
+    qint32 port,Flag;
+    qint64 totalByte;
     std::string ipAddr;
     qint64 FileNumber;
     QFile *logFile;
     bool finishFlag;
+    qint64 finishByte;//已经接收的总字节数
+    qint64 cunrrentFinishByte;//当前接收的字节数
 private:
     bool  KoPath(const QString &dirName);
     void  connectToServer();
 public slots:
     void ReceiveData();
-    void UpProgress();
     void LostConnection();
+    void showSpeed(qint64);//显示传输进度
 signals:
     void DataComing();
-    void DataWritten();
+    void refresh(qint64);
 
 };
 

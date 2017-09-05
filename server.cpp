@@ -7,17 +7,18 @@
 #include<Windows.h>
 
 
+
 std::string Server::dirpath;//定义静态变量
-Server::Server(const char *inputPort):ThreadNum(0)
-
+Server::Server(const char *inputPort)
 {
+    ThreadNum = 0;
     m_iPort = atoi(inputPort);//把端口号从string 转换成整数类型
-
     FileWatcher::getInstance(dirpath);//启动文件遍历器
-
 
    //TCP
      server = new MyTcpSever;
+     tcpSock = new myTcpSocket;//创建一个套接字
+     sender = new Sender;//创建一个文件发送器
     if (!server->isListening()){//监听
         if (server->listen(QHostAddress::Any, m_iPort)){
             std::cout<<"open listen port success!"<<std::endl;
@@ -44,25 +45,35 @@ Server::~Server(){
     if(sendThread1){
         delete[] sendThread1;
     }
-
+     if(tcpSock) delete tcpSock;
+     if(sender)  delete sender;
     delete FileWatcher::getInstance(Server::dirpath);//释放监视器
+}
 
+
+//当有新的连接的时候响应这个函数
+void Server::newConnectionSlot(qintptr ptr1){
+ tcpSock->setSocketDescriptor(ptr1);//为这个套接字设置套接字描述符
+ FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
+ sender = new Sender(tcpSock,&queueSend);
+ connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
+ sender->sendFile();//发送文件
+
+
+//  if(ThreadNum<Min){
+//    sendThread1[ThreadNum] = new SendThread(ptr1);//把这个发送套接字传给工作线程
+//    sendThread1[ThreadNum]->moveToThread(sendThread1[ThreadNum]);//把这个对象移动到子线程中去，让sendThread1[ThreadNum]对象的槽函数都属于依附子线程
+//    sendThread1[ThreadNum]->start();//启动子线程
+//    ++ThreadNum;
+//  }
 
 }
 
-void Server::newConnectionSlot(qintptr ptr1)
+//退出程序
+void Server::quitAutoSend()
 {
-
-  //  qDebug()<<"qintptr:"<<ptr1;
-
-
-  if(ThreadNum<Min){
-    sendThread1[ThreadNum] = new SendThread(ptr1);//把这个发送套接字传给工作线程
-    sendThread1[ThreadNum]->moveToThread(sendThread1[ThreadNum]);//把这个对象移动到子线程中去，让sendThread1[ThreadNum]对象的槽函数都属于依附子线程
-    sendThread1[ThreadNum]->start();//启动子线程
-    ++ThreadNum;
-  }
-
+   // qDebug()<<"EXIT!";
+    exit(0);//
 }
 
 

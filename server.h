@@ -34,6 +34,11 @@ private:
     qint64 ThreadNum;
     FileWatcher *f1;
     qint32 m_iPort;
+    Sender *sender;//发送器
+    myTcpSocket *tcpSock;//发送文件的套接字
+    std::queue<QString> queueSend;//文件队列
+  //  int socketDescriptor;//套接字描述符
+
 public:
     static std::string dirpath;//声明
 signals:
@@ -41,6 +46,7 @@ signals:
 private slots:
      void newConnectionSlot(qintptr ptr1);//对新的TCP连接进行处理
 public slots:
+     void quitAutoSend();//退出程序
 
 };
 
