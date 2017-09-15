@@ -1,6 +1,7 @@
 #include "sender.h"
-
+#include<windows.h>
 #include<QCoreApplication.h>
+#include"autosend.h"
 //传输发送套接字和队列的指针才能进行启动sender
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
@@ -9,6 +10,8 @@ connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed(qint64)));//连接显�
 finishFlag = false;
 finishByte = 0;
 cunrrentFinishByte = 0;
+
+
 }
 
 Sender::~Sender()
@@ -31,62 +34,60 @@ void Sender::sendFile()
     //告诉对面有多少个文件要接收
     char *FileNum = new char[i64FileNum];//文件个数数组
     memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
-    m_Socket->write(FileNum,8);//发送文件名
+    m_Socket->write(FileNum,8);//把文件个数发过去
 
-    while(Fileque->size())//有几个文件就发几次
+
+    while(Fileque->size())//有几个文件就执行几次
     {
+
+        time.start();//开始计时
         //路径获取
-        QString fullpath =  Fileque->front();//队列头文件的全路径
+        QString fullpath =  Fileque->front();//文件队列中第一个文件的全路径
         std::string path =  fullpath.toStdString();//把全路径从QString格式转换成string
-        //文件打开
-        QFile file(path.c_str());
-        file.open(QFile::ReadOnly);//以只读的方式打开文件
+
+        QFile file(path.c_str());    //在硬盘上打开这个文件
+        file.open(QFile::ReadOnly);//以只读的方式打开
         qDebug()<<fullpath;//显示当前传输的文件
-
-
         finishByte = 0;
-
-
-
-
         qint64 FileLength  = file.size();//获取文件长度
         // qDebug()<< FileLength;
-        qint64 BlockNum = FileLength/8388608;//整包数量
+        qint64 BlockNum = FileLength / IPMSG_DEFAULT_IOBUFMAX;//整包数量
         qint64 temp = BlockNum;//备份整包数量
-        qint64 LastBlock = FileLength%8388608;//最后一块文件的大小
+        qint64 LastBlock = FileLength % IPMSG_DEFAULT_IOBUFMAX;//最后一块文件的大小
         qint64 TotalNum = BlockNum + 1;//总包数量
-        qint64 TotalByte = BlockNum * 8388608 + LastBlock;//总字节数
+        qint64 TotalByte = BlockNum * IPMSG_DEFAULT_IOBUFMAX + LastBlock;//总字节数
 
 
-        char *SendBuffer = new char[8388608 + 12];//申请buffer
-        qint32 PathLength = path.length();//储存文件路径字符的长度
+        char *SendBuffer = new char[IPMSG_DEFAULT_IOBUFMAX + 12];//申请buffer
+        qint32 PathLength = path.length();//计算储存文件路径字符串的长度
         char *SendPath = new char[PathLength + 4];//分配发送路径的buffer,多分配四个字节储存一个整型数
 
         //拷贝文件名
         memcpy(SendPath, &PathLength, 4); //将字节长度信息存在前4个字节内
         memcpy(&SendPath[4],path.c_str(),PathLength);//组装文件名信息
-
-
-
         m_Socket->write(SendPath,path.length() + 4);//发送文件名
-
-        if(!m_Socket->waitForBytesWritten(600000))//等待数据发完  超过10分钟自己不发了，直接返回，网太差
+        if(!m_Socket->waitForBytesWritten(IPMSG_DEFAULT_WAITTIMEMAX))//等待数据发完  超过10分钟自己不发了，直接返回，网太差
         {
             return;
         }
 
 
 
+
+
+
         //发送数据
-        for (qint32 i = 1; temp> 0; temp--,i++){
+        for (qint32 i = 1; temp > 0; temp--,i++){
             memcpy(SendBuffer, &i, 4);             //添加4个字节到数组的前四个字节作为当前包的次序数
             memcpy(&SendBuffer[4], &TotalNum, 4);// 添加4个字节到数据的4-8字节作为整个文件的包的数量
             memcpy(&SendBuffer[8], &LastBlock, 4); //添加4个字节到数据的8-12字节作为最后一个包的大小
-            file.read(&SendBuffer[12],8388608);//读取数据
 
-            finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,8388608 + 12);//返回实际发送过去的字节数
+            file.read(&SendBuffer[12],IPMSG_DEFAULT_IOBUFMAX);//读取数据
+
+            finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,IPMSG_DEFAULT_IOBUFMAX + 12);//发送
+
             emit refresh(FileLength);//发送信号
-            if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发送完
+            if(!m_Socket->waitForBytesWritten(IPMSG_DEFAULT_WAITTIMEMAX)){  //等待数据发送完
                 return ;
             }
         }
@@ -96,9 +97,10 @@ void Sender::sendFile()
         file.read(&SendBuffer[12],LastBlock);
 
         finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,LastBlock + 12);//发送数据
+
         emit refresh(FileLength);//显示进度
 
-        if(!m_Socket->waitForBytesWritten(600000)){  //等待数据发完 ,如果断开连接就返回
+        if(!m_Socket->waitForBytesWritten(IPMSG_DEFAULT_WAITTIMEMAX)){  //等待数据发完 ,如果断开连接就返回
             return;
         }
         file.close();
@@ -109,9 +111,13 @@ void Sender::sendFile()
         Fileque->pop();//出队
     }
     delete FileNum;
+
     qDebug()<<"OK";
     finishFlag = true;
 }
+
+
+
 
 
 
@@ -136,7 +142,10 @@ void Sender::showSpeed(qint64 fileLenth)
 
 
 
-   printf("%.2lf%%\r", 100 * (float)finishByte / fileLenth);
+   printf("%.2lf%%%5d\r", 100 * (float)finishByte / fileLenth,time.elapsed() / 1000);
+   // qDebug()<<cunrrentFinishByte;//显示本次发送一共发送了多少个字节
+
+
   // printf("%.2lf%%\r", finishByte / fileLenth);
   // qDebug()<<100 * (float)finishByte / fileLenth;
     //qDebug()<<(float)finishByte / fileLenth;

@@ -29,4 +29,5 @@ HEADERS += \
     filewatcher.h \
     sender.h \
     mytcpsever.h \
-    mytcpsocket.h
+    mytcpsocket.h \
+    autosend.h

@@ -8,6 +8,7 @@
 #include<string>
 #include<QTime>
 #include<stdio.h>
+#include<iostream>
 
 
 class Sender : public QObject
@@ -25,6 +26,7 @@ private:
     bool finishFlag;
     qint64 finishByte;//已经发送的总字节数
     qint64 cunrrentFinishByte;//当前发送的字节数
+
 public slots:
     void LostConnection();
     void showSpeed(qint64);//显示进度
