@@ -26,6 +26,7 @@ private:
     bool finishFlag;
     qint64 finishByte;//已经发送的总字节数
     qint64 cunrrentFinishByte;//当前发送的字节数
+    qint64 FileLength;//文件长度
 
 public slots:
     void LostConnection();

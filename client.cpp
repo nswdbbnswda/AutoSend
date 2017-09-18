@@ -15,7 +15,7 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     TotalNum = 0;
     LastBlock = 0;
     Flag = 0;
-    totalByte = 0;
+    FileLength = 0;
     FileNumber = 0;
     ipAddr = strIpAddr;
     finishByte = 0;
@@ -28,19 +28,16 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     m_pSocket = new QTcpSocket();//创建客户端套接字
     m_pSocket->setReadBufferSize(IPMSG_DEFAULT_QTINERBUFFER);//设置QT内部缓冲区大小为10M
     //qDebug()<<m_pSocket->readBufferSize();//显示QT内部缓冲区大小
-
-
     connectToServer();//连接服务器
-    connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed(qint64)));
+    connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
     connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//断开连接了做异常处理
    //连接信号和槽将数据接收并存到硬盘中
     connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
-    emit DataComing();//发送信号，文件来了
 
+    emit DataComing();//发送信号，文件来了
     //connect(m_pSocket,SIGNAL(readyRead()),this,SLOT(test()));//测试连接，当有数据过来的时候直接将数据全部读出来，然后再查看cpu占用率
 
 }
-
 
 
 Client::~Client()
@@ -56,10 +53,11 @@ Client::~Client()
 }
 
 
+
+
 //接收数据
 void Client::ReceiveData()
 {
-
         //等待发送端把文件的个个数发送的过来
        QByteArray  fileNum;
        qint64  totalFileNum = 0;
@@ -75,7 +73,7 @@ void Client::ReceiveData()
 
         //循环接收每一个文件
         while(totalFileNum){
-
+            time.start();//启动计时器
             finishByte = 0;
             m_pSocket->waitForReadyRead();//先等一会直到有数据过来
             while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
@@ -113,7 +111,7 @@ void Client::ReceiveData()
             memcpy(&CurrentNum,ReceiveHead,4);
             memcpy(&TotalNum,&ReceiveHead[4],4);//整个文件的包的数量
             memcpy(&LastBlock,&ReceiveHead[8],4);//当前文件最后一个包的字节数
-            totalByte = (TotalNum-1) * IPMSG_DEFAULT_IOBUFMAX + LastBlock;//当前文件的总的字节数量
+            FileLength = (TotalNum-1) * IPMSG_DEFAULT_IOBUFMAX + LastBlock;//当前文件的总的字节数量
             //qDebug()<<totalByte;//显示文件的总字节数
 
             if(TotalNum>1){//如果存在整包
@@ -133,7 +131,7 @@ void Client::ReceiveData()
                     //
 
                      finishByte += file.write(vTemp);//写入数据
-                   emit refresh(totalByte);
+                   emit refresh();
 
                     TotalNum--;
                     //存在一个BUG 尚未进行对12字节处理
@@ -145,7 +143,7 @@ void Client::ReceiveData()
                 vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
 
                  finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
-                 emit refresh(totalByte);
+                 emit refresh();
 
             }
             //数据不足IPMSG_DEFAULT_IOBUFMAX个字节
@@ -155,7 +153,7 @@ void Client::ReceiveData()
                 }
                 vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
                  finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
-               emit refresh(totalByte);//更新进度
+               emit refresh();//更新进度
 
             }
 
@@ -186,17 +184,32 @@ void Client::LostConnection()
 }
 
 
+
+
 //显示传输进度
-void Client::showSpeed(qint64 fileLenth)
+void Client::showSpeed()
 {
-    printf("%.2lf%%\r", 100 * (float)finishByte / fileLenth);
+    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
+   // printf("%.2lf%%\r", 100 * (float)finishByte / fileLenth);
+
+
+    printf("%.1f%s%.1f%s%.1lf%s%.2lf%%%s\r",
+    (float)finishByte/1048576,
+           "/",
+           (float)FileLength/1048576,"MB ",
+           ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
+          "MB/S (",
+          100 * (float)finishByte / FileLength ,
+           ")");
+
+
 
 }
 
 
 
 
-//输入:文件全路径，输出:在该路径上创建文件
+//文件全路径，输出:在该路径上创建文件
 bool  Client::KoPath(const QString &dirName)//文件全路径(包含文件名）
 {
     QString fullPath;

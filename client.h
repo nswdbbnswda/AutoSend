@@ -6,6 +6,7 @@
 #include<QTcpSocket>
 #include<QFileInfo>
 #include<QDir>
+#include<QTime>
 
 
 class Client : QObject
@@ -20,24 +21,25 @@ private:
     qint32      num,CurrentNum,TotalNum,LastBlock,nameLength;
     char        *ReceiveHead;
     qint32      port,Flag;
-    qint64      totalByte;
+    qint64      FileLength;//文件总字节数
     std::string ipAddr;
     qint64      FileNumber;
     QFile       *logFile;
     bool        finishFlag;
     qint64      finishByte;//已经接收的总字节数
     qint64      cunrrentFinishByte;//当前接收的字节数
+    QTime       time;//计时
 private:
     bool KoPath(const QString &dirName);
     void connectToServer();
 public slots:
     void ReceiveData();
     void LostConnection();
-    void showSpeed(qint64);//显示传输进度
+    void showSpeed();//显示传输进度
     void test();//测试 找出CPU占用过高的BUG
 signals:
     void DataComing();
-    void refresh(qint64);
+    void refresh();
 
 };
 
