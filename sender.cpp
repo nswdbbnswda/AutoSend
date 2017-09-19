@@ -36,10 +36,10 @@ void Sender::sendFile()
     memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
     m_Socket->write(FileNum,8);//把文件个数发过去
 
-   time.start();//开始计时
+
     while(Fileque->size())//有几个文件就执行几次
     {
-
+         time.restart();
         //路径获取
         QString fullpath =  Fileque->front();//文件队列中第一个文件的全路径
         std::string path =  fullpath.toStdString();//把全路径从QString格式转换成string
@@ -127,7 +127,8 @@ if( finishFlag) //发完了
 //掉线了
 else{
 
-qDebug()<<"Reconnecting......";
+std::cout<<'\n'<<"Reconnecting......";
+
  }
 }
 

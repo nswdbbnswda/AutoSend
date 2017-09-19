@@ -16,8 +16,10 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Iter fuck;
-    fuck.interacter(argc,argv);//启动用户交互线程
+    Iter iter;
+
+   // char *p[] = {"AutoSend","c","192.168.1.9","5001"};
+    iter.interacter(argc,argv);//启动用户交互线程
 
 
     return a.exec();

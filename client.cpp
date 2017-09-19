@@ -30,7 +30,7 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     //qDebug()<<m_pSocket->readBufferSize();//显示QT内部缓冲区大小
     connectToServer();//连接服务器
     connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
-    connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//断开连接了做异常处理
+    connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(lostConnection()));//断开连接了做异常处理
    //连接信号和槽将数据接收并存到硬盘中
     connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
 
@@ -58,12 +58,18 @@ Client::~Client()
 //接收数据
 void Client::ReceiveData()
 {
-        //等待发送端把文件的个个数发送的过来
+
+
+
+    //等待发送端把文件的个个数发送的过来
        QByteArray  fileNum;
        qint64  totalFileNum = 0;
 
         while(m_pSocket->bytesAvailable()<8){//等待至少有8个字节数据到来
-            m_pSocket->waitForReadyRead();
+            if(!m_pSocket->waitForReadyRead()){
+                 m_pSocket->disconnectFromHost();//如果超时了，尝试重新连接服务器
+
+            }
         }
 
         fileNum = m_pSocket->read(8);//把这8个字节读到字节数组里
@@ -73,17 +79,28 @@ void Client::ReceiveData()
 
         //循环接收每一个文件
         while(totalFileNum){
-            time.start();//启动计时器
+            time.restart();
             finishByte = 0;
-            m_pSocket->waitForReadyRead();//先等一会直到有数据过来
+
+            if(!m_pSocket->waitForReadyRead()){
+                 m_pSocket->disconnectFromHost();
+
+            }
             while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
-                m_pSocket->waitForReadyRead();
+
+                if(!m_pSocket->waitForReadyRead()){
+
+                     m_pSocket->disconnectFromHost();
+
+                }
             }
             vTemp = m_pSocket->read(4);//读4个字节，储存的是文件名字的字节数量
             receiveName = vTemp.data();//转换成char*类型
             memcpy(&nameLength,receiveName,4);//nameLength储存的是文件名字所占的字节数量
             while(m_pSocket->bytesAvailable() < nameLength){//如果当前缓冲区字节数不足nameLength，就缓冲到足为止
-                m_pSocket->waitForReadyRead();
+                if(!m_pSocket->waitForReadyRead()){
+                     m_pSocket->disconnectFromHost();
+                }
             }
 
             vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
@@ -104,7 +121,11 @@ void Client::ReceiveData()
 
             //读12个字节的文件头信息
             while(m_pSocket->bytesAvailable() < 12){
-                m_pSocket->waitForReadyRead();
+
+                if(!m_pSocket->waitForReadyRead()){
+                    m_pSocket->disconnectFromHost();
+                }
+
             }
             vTemp = m_pSocket->read(12);//读12字节
             ReceiveHead = vTemp.data();//类型转换QByteArray到char *
@@ -118,13 +139,22 @@ void Client::ReceiveData()
 
                 while(TotalNum-1){//运行的次数
                     while(m_pSocket->bytesAvailable() < IPMSG_DEFAULT_IOBUFMAX){//缓冲IPMSG_DEFAULT_IOBUFMAX个字节数
-                        m_pSocket->waitForReadyRead();
+
+                        if(!m_pSocket->waitForReadyRead()){
+                             m_pSocket->disconnectFromHost();
+                        }
+
                     }
                     vTemp = m_pSocket->read(IPMSG_DEFAULT_IOBUFMAX); //读取IPMSG_DEFAULT_IOBUFMAX个字节
 
 
                     while(m_pSocket->bytesAvailable()<12){
-                        m_pSocket->waitForReadyRead();
+
+                        if(!m_pSocket->waitForReadyRead()){
+                             m_pSocket->disconnectFromHost();
+
+                        }
+
                     }
                     xTemp = m_pSocket->read(12);
                     xTemp.clear();
@@ -138,7 +168,11 @@ void Client::ReceiveData()
                 }
 
                 while(m_pSocket->bytesAvailable() < LastBlock){ //对最后一个包进行缓冲
-                    m_pSocket->waitForReadyRead();
+
+                    if(!m_pSocket->waitForReadyRead()){
+                         m_pSocket->disconnectFromHost();
+                    }
+
                 }
                 vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
 
@@ -149,7 +183,12 @@ void Client::ReceiveData()
             //数据不足IPMSG_DEFAULT_IOBUFMAX个字节
             else{
                 while(m_pSocket->bytesAvailable() < LastBlock){//把数据缓冲下来
-                    m_pSocket->waitForReadyRead();
+
+                    if(!m_pSocket->waitForReadyRead()){
+
+                         m_pSocket->disconnectFromHost();
+                    }
+
                 }
                 vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
                  finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
@@ -172,14 +211,15 @@ void Client::ReceiveData()
 
 
 //失去连接时
-void Client::LostConnection()
+void Client::lostConnection()
 {
    if(finishFlag) exit(0);//发送完毕，退出程序
     else{
       //  qDebug()<<"Lost connection!";
-        qDebug()<<"Reconnecting......";
+
+        std::cout<<'\n'<<"Reconnecting......"<<std::endl;
         connectToServer();//重新连接
-        qDebug()<<"The network connection has been restored!";
+        std::cout<<"The network connection has been restored!"<<std::endl;
    }
 }
 
@@ -190,20 +230,14 @@ void Client::LostConnection()
 void Client::showSpeed()
 {
     //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
-   // printf("%.2lf%%\r", 100 * (float)finishByte / fileLenth);
-
-
     printf("%.1f%s%.1f%s%.1lf%s%.2lf%%%s\r",
-    (float)finishByte/1048576,
+           (float)finishByte/1048576,
            "/",
            (float)FileLength/1048576,"MB ",
            ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
-          "MB/S (",
-          100 * (float)finishByte / FileLength ,
+           "MB/S (",
+           100 * (float)finishByte / FileLength ,
            ")");
-
-
-
 }
 
 
@@ -231,8 +265,8 @@ bool  Client::KoPath(const QString &dirName)//文件全路径(包含文件名）
 void Client::connectToServer()
 {
     while(true){
-     m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
-     if(m_pSocket->waitForConnected()) break;//如果连上了服务器，函数返回
+        m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
+        if(m_pSocket->waitForConnected()) break;//如果连上了服务器，函数返回
     }
 }
 
@@ -240,8 +274,8 @@ void Client::connectToServer()
 //找BUG
 void Client::test()
 {
-  /// QByteArray availableByte =  m_pSocket->readAll();//把数据全部读出来
-  // qDebug()<<availableByte.length();//显示数据的长度
+    /// QByteArray availableByte =  m_pSocket->readAll();//把数据全部读出来
+    // qDebug()<<availableByte.length();//显示数据的长度
     qDebug()<<m_pSocket->bytesAvailable();//显示有多少个数据可读
 
 }

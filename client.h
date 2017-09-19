@@ -31,15 +31,16 @@ private:
     QTime       time;//计时
 private:
     bool KoPath(const QString &dirName);
-    void connectToServer();
+    void connectToServer();//连接服务端
 public slots:
     void ReceiveData();
-    void LostConnection();
+    void lostConnection();//重新连接
     void showSpeed();//显示传输进度
     void test();//测试 找出CPU占用过高的BUG
 signals:
     void DataComing();
     void refresh();
+
 
 };
 
