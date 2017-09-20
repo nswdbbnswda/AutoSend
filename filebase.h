@@ -16,7 +16,6 @@ public:
     std::string& getPath(){ return strPath;}//获取路径
 protected:
     std::string strPath;//路径
-
 };
 
 #endif // FILEBASE_H

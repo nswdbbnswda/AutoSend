@@ -13,7 +13,6 @@
 #include<QDirIterator>
 #include<queue>
 #include<QFileSystemWatcher>
-#include"sendthread.h"
 #include"filewatcher.h"
 #include"sender.h"
 #include"mytcpsever.h"
@@ -25,28 +24,24 @@ public:
     explicit Server(const char *inputPort);
     virtual ~Server();
 private:
-    enum ThreadMaxNum{Min = 1000000,Mind = 20,Max = 30,Super = 1000};
-
     MyTcpSever *server;
-    QTcpSocket *m_Socket[Min];//连接套接字
+    QTcpSocket *m_Socket;//连接套接字
     std::string path;
-    SendThread *sendThread1[Min];
     qint64 ThreadNum;
     FileWatcher *f1;
     qint32 m_iPort;
     Sender *sender;//发送器
-    myTcpSocket *tcpSock;//发送文件的套接字
+    QTcpSocket *tcpSock;//发送文件的套接字
     std::queue<QString> queueSend;//文件队列
-  //  int socketDescriptor;//套接字描述符
 
 public:
     static std::string dirpath;//声明
 signals:
 
 private slots:
-     void newConnectionSlot(qintptr ptr1);//对新的TCP连接进行处理
+    void newConnectionSlot(qintptr ptr1);//对新的TCP连接进行处理
 public slots:
-     void quitAutoSend();//退出程序
+    void quitAutoSend();//退出程序
 
 };
 

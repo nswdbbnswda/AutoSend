@@ -35,15 +35,6 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
   // while(1)
    {
         printf("\n(AutoSend):");
-
-
-
-
-      // cout<<*(p_cCmd+2)<<endl;
-       //cout<<*(p_cCmd+3)<<endl;
-
-
-
         //fgets(com, sizeof(com), stdin);//
         //transfStr(com, 1); //去掉开头结尾空白字符，变成全小写
 
@@ -85,9 +76,6 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
         else if (!strcmp(*(p_cCmd+1), "server") ||
                  !strcmp(*(p_cCmd+1), "s"))
         {
-
-           // cout<<*(p_cCmd+2)<<endl;
-
          Server::dirpath = *(p_cCmd+3);
 
          server = new Server(*(p_cCmd+2));//把端口号传给Server类
@@ -106,6 +94,9 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
             printf(IMHELP);
      }
 }
+
+
+
 
 void Iter::transfStr(char *dest, int flag)
 {

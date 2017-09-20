@@ -40,8 +40,6 @@ public slots:
 signals:
     void DataComing();
     void refresh();
-
-
 };
 
 #endif // CLIENT_H

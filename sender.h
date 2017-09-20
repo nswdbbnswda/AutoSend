@@ -27,15 +27,12 @@ private:
     qint64 finishByte;//已经发送的总字节数
     qint64 cunrrentFinishByte;//当前发送的字节数
     qint64 FileLength;//文件长度
-
 public slots:
     void LostConnection();
     void showSpeed(qint64);//显示进度
 signals:
     void refresh(qint64);//刷新进度
     void finishSend();//发送完成
-
-
 };
 
 #endif // SENDER_H
