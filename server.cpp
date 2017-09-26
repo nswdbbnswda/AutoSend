@@ -50,9 +50,11 @@ void Server::newConnectionSlot(qintptr ptr1)
     tcpSock->setSocketDescriptor(ptr1);//为这个套接字设置套接字描述符
     FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
 
-    sender = new Sender(tcpSock,&queueSend);//创建文件发送器
+    sender = new Sender(tcpSock,&queueSend);//创建文件发送器,参数1是套接字，参数2是文件队列
     connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
-    sender->sendFile();//发送文件
+
+   // sender->sendFileList();//发送文件清单
+     sender->sendFile();//发送文件
 }
 
 //退出程序

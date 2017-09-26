@@ -16,7 +16,8 @@ SOURCES += main.cpp \
     filebase.cpp \
     filewatcher.cpp \
     sender.cpp \
-    mytcpsever.cpp
+    mytcpsever.cpp \
+    md5key.cpp
 
 HEADERS += \
     server.h \
@@ -26,4 +27,5 @@ HEADERS += \
     filewatcher.h \
     sender.h \
     mytcpsever.h \
-    autosend.h
+    autosend.h \
+    md5key.h

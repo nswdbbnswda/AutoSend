@@ -21,9 +21,13 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     ipAddr = strIpAddr;
     finishByte = 0;
     cunrrentFinishByte = 0;
+    fileStartPos = 0;
     finishFlag = false;
-    logFile = new QFile(QCoreApplication::applicationDirPath()+"/RecvLog.txt");//建立日志文件
-    logFile->open(QIODevice::WriteOnly | QIODevice::Append);
+    logFile = new QFile(QCoreApplication::applicationDirPath()+"/recvlog.txt");//建立日志文件
+    logFile->open(QIODevice::WriteOnly | QIODevice::Append);//以追加的方式将文件名字写入日志
+    //记录当前的文件指针位置
+    fileStartPos = logFile->pos();//获得文件当前位置
+    // logFile->open(QIODevice::WriteOnly );//以覆盖的方式将文件名字写入日志
 
     port = atoi(inputPort.c_str());//把端口号从string 类型转换成 整型
     m_pSocket = new QTcpSocket();//创建客户端套接字
@@ -32,8 +36,10 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
     connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(lostConnection()));//断开连接了做异常处理
     //连接信号和槽将数据接收并存到硬盘中
-    connect(this, SIGNAL(DataComing()),this, SLOT(ReceiveData()));
-    emit DataComing();//发送信号，文件来了
+    connect(this, SIGNAL(dataComing()),this, SLOT(receiveData()));
+    emit dataComing();//发送信号，文件来了
+    //connect(m_pSocket,SIGNAL(readyRead()),this,SLOT(receiveFileList()));
+
 }
 
 
@@ -56,9 +62,10 @@ Client::~Client()
 
 
 //接收数据
-void Client::ReceiveData()
+void Client::receiveData()
 { 
-    //等待发送端把文件的个个数发送的过来
+
+    //等待发送端把文件的个数发送的过来
     QByteArray  fileNum;
     qint64  totalFileNum = 0;
     while(m_pSocket->bytesAvailable()<8){//等待至少有8个字节数据到来
@@ -70,6 +77,7 @@ void Client::ReceiveData()
     receiveFileNum = fileNum.data();//转换成char *类型
     memcpy(&totalFileNum,receiveFileNum,8);//拷贝到totalFileNum变量中
     qDebug()<<totalFileNum;//显示有多少个文件
+
     //循环接收每一个文件
     while(totalFileNum){
         time.restart();
@@ -102,27 +110,26 @@ void Client::ReceiveData()
         QFile file(vTemp.data());
         file.open(QFile::WriteOnly);//只写方式打开
         logFile->write(vTemp); //写入日志文件
+        logFile->flush();//刷新一下内容
         logFile->write("\r\n");//日志格式
-
         //读12个字节的文件头信息
         while(m_pSocket->bytesAvailable() < 12){
-
             if(!m_pSocket->waitForReadyRead()){
                 m_pSocket->disconnectFromHost();
             }
-
         }
         vTemp = m_pSocket->read(12);//读12字节
         ReceiveHead = vTemp.data();//类型转换QByteArray到char *
         memcpy(&CurrentNum,ReceiveHead,4);
         memcpy(&TotalNum,&ReceiveHead[4],4);//整个文件的包的数量
         memcpy(&LastBlock,&ReceiveHead[8],4);//当前文件最后一个包的字节数
-        FileLength = (TotalNum-1) * IPMSG_DEFAULT_IOBUFMAX + LastBlock;//当前文件的总的字节数量
+
+        FileLength = (qint64)((qint64)(TotalNum-1) * (qint64)IPMSG_DEFAULT_IOBUFMAX +(qint64) LastBlock);//当前文件的总的字节数量
+       // qDebug()<<FileLength;
 
         if(TotalNum>1){//如果存在整包
             while(TotalNum-1){//运行的次数
                 while(m_pSocket->bytesAvailable() < IPMSG_DEFAULT_IOBUFMAX){//缓冲IPMSG_DEFAULT_IOBUFMAX个字节数
-
                     if(!m_pSocket->waitForReadyRead()){
                         m_pSocket->disconnectFromHost();
                     }
@@ -159,13 +166,12 @@ void Client::ReceiveData()
             vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
             finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
             emit refresh();//更新进度
-
         }
-
         file.close();//完成一个文件的读写
         totalFileNum--;
     }
-    logFile->close();//关闭日志文件
+    //logFile->resize(0);//清空日志文件
+    //logFile->close();//关闭日志文件
     qDebug()<<"OK";
     finishFlag = true;
     m_pSocket->close();//关闭套接字
@@ -176,10 +182,14 @@ void Client::ReceiveData()
 //失去连接时
 void Client::lostConnection()
 {
-   if(finishFlag) exit(0);//发送完毕，退出程序
+   if(finishFlag) {//发送成功退出的时候清除日志
+       logFile->resize(fileStartPos);//清楚本次所有文件的传输记录
+       logFile->close();//关闭日志文件
+       exit(0);//发送完毕，退出程序
+   }
     else{
       //  qDebug()<<"Lost connection!";
-
+         logFile->close();//关闭日志文件
         std::cout<<'\n'<<"Reconnecting......"<<std::endl;
         connectToServer();//重新连接
         std::cout<<"The network connection has been restored!"<<std::endl;
@@ -193,14 +203,15 @@ void Client::lostConnection()
 void Client::showSpeed()
 {
     //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
-    printf("%.1f%s%.1f%s%.1lf%s%.2lf%%%s\r",
-           (float)finishByte/1048576,
+    printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
+           (double)finishByte/1048576,
            "/",
-           (float)FileLength/1048576,"MB ",
+           (double)FileLength/1048576,"MB ",
            ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
            "MB/S (",
-           100 * (float)finishByte / FileLength ,
+           100 * (double)finishByte / FileLength ,
            ")");
+
 }
 
 
@@ -237,10 +248,17 @@ void Client::connectToServer()
 
 
 
-//找BUG
-void Client::test()
+//接收文件清单信息
+void Client::receiveFileList()
 {
-    qDebug()<<m_pSocket->bytesAvailable();//显示有多少个数据可读
+  QByteArray data = m_pSocket->readAll();
+  qDebug()<<data;
+  qDebug()<<data.length();
+  QFile fileListLog(QCoreApplication::applicationDirPath()+"/fileListLog.txt");
+  fileListLog.open(QIODevice::WriteOnly | QIODevice::Append);//以追加的方式将文件名字写入日志
+  fileListLog.write(data); //把文件列表信息写到fileListLog.txt文件
+  fileListLog.write("\r\n");//日志格式
+
 }
 
 

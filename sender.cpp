@@ -7,7 +7,7 @@
 Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
 {
     connect(m_Socket,SIGNAL(disconnected()),SLOT(LostConnection()));//连接显示断开连接的信号与槽
-    connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed(qint64)));//连接显示传输进度的信号与槽
+    connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed()));//连接显示传输进度的信号与槽
     finishFlag = false;
     finishByte = 0;
     cunrrentFinishByte = 0;
@@ -36,6 +36,7 @@ void Sender::sendFile()
     memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
     m_Socket->write(FileNum,8);//把文件个数发过去
 
+
     while(Fileque->size())//有几个文件就执行几次
     {
         time.restart();
@@ -52,7 +53,6 @@ void Sender::sendFile()
         qint64 LastBlock = FileLength % IPMSG_DEFAULT_IOBUFMAX;//最后一块文件的大小
         qint64 TotalNum = BlockNum + 1;//总包数量
         qint64 TotalByte = BlockNum * IPMSG_DEFAULT_IOBUFMAX + LastBlock;//总字节数
-
 
         char *SendBuffer = new char[IPMSG_DEFAULT_IOBUFMAX + 12];//申请buffer
         qint32 PathLength = path.length();//计算储存文件路径字符串的长度
@@ -105,6 +105,25 @@ void Sender::sendFile()
 
 
 
+
+//发送文件清单给客户端
+void Sender::sendFileList()
+{
+ QString s = QString::number(Fileque->size(),10 );
+ QByteArray data = s.toLatin1();
+ qDebug()<<data;
+ qDebug()<<data.size();
+  m_Socket->write(data);//发送总的文件个数
+  m_Socket->waitForBytesWritten();
+//如果清单没有发送去过的话就认为本次任务发送失败直接清楚所有缓存数据
+}
+
+
+
+
+
+
+
 //断线处理
 void Sender::LostConnection()
 {
@@ -120,16 +139,16 @@ void Sender::LostConnection()
 
 
 //显示进度速度等信息
-void Sender::showSpeed(qint64 finishSend)
+void Sender::showSpeed()
 {
-    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
-    printf("%.1f%s%.1f%s%.1lf%s%.2lf%%%s\r",
-           (float)finishByte/1048576,
+//    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
+    printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
+           (double)finishByte/1048576,
            "/",
-           (float)FileLength/1048576,"MB ",
+           (double)FileLength/1048576,"MB ",
            ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
            "MB/S (",
-           100 * (float)finishByte / FileLength ,
+           100 * (double)finishByte / FileLength ,
            ")");
 }
 
