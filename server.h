@@ -18,6 +18,7 @@
 #include"mytcpsever.h"
 
 
+
 class Server : QObject
 {  Q_OBJECT
 public:

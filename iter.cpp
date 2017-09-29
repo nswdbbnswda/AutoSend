@@ -86,7 +86,6 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
         {
           client  = new Client(*(p_cCmd+2),*(p_cCmd+3));//client 127.0.0.1 5000
 
-             cout<<"This is Client!"<<endl;
 
         }
        else if (!strcmp(*(p_cCmd+1), "help") ||

@@ -5,9 +5,8 @@
 #include<vector>
 #include<Windows.h>
 
-
-
 std::string Server::dirpath;//定义静态变量
+
 Server::Server(const char *inputPort)
 {
     ThreadNum = 0;
@@ -19,14 +18,13 @@ Server::Server(const char *inputPort)
     sender = new Sender;//创建一个文件发送器
     if (!server->isListening()){//监听
         if (server->listen(QHostAddress::Any, m_iPort)){
-            std::cout<<"open listen port success!"<<std::endl;
+            std::cout<<"open listen port success!"<<std::endl;//提示监听成功
         }
-        else{ std::cout<<"open listen port fail!"<<std::endl;}
+        else{ std::cout<<"open listen port fail!"<<std::endl;}//提示监听失败
     }
     else{std::cout<<"Function  isListening()  error!"<<std::endl; }
     connect(server, SIGNAL(newClientConnection(qintptr)), this, SLOT(newConnectionSlot(qintptr)));//当有新的连接的时候，就会执行槽函数
 }
-
 
 
 Server::~Server()
@@ -53,8 +51,8 @@ void Server::newConnectionSlot(qintptr ptr1)
     sender = new Sender(tcpSock,&queueSend);//创建文件发送器,参数1是套接字，参数2是文件队列
     connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
 
-   // sender->sendFileList();//发送文件清单
-     sender->sendFile();//发送文件
+    sender->sendTaskCode();//发送任务代号
+    // sender->sendFile();//发送文件
 }
 
 //退出程序
