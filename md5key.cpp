@@ -148,11 +148,4 @@ string getMD5(string source)
     return changeHex(atemp).append(changeHex(btemp)).append(changeHex(ctemp)).append(changeHex(dtemp));
 }
 
-//unsigned int main()
-//{
-//    string ss;
-////    cin>>ss;
-//    string s=getMD5("abc");
-//    cout<<s;
-//    return 0;
-//}
+

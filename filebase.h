@@ -8,7 +8,6 @@
 class FileBase : public QObject{
     Q_OBJECT
 public:
-
     FileBase(const std::string &path);
     FileBase() = default;
     virtual ~FileBase();

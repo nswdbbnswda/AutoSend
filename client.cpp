@@ -171,7 +171,6 @@ void Client::receiveData()
         file.close();//完成一个文件的读写
         totalFileNum--;
     }
-
     qDebug()<<"OK";
     finishFlag = true;
     m_pSocket->close();//关闭套接字
@@ -182,19 +181,20 @@ void Client::receiveData()
 //失去连接时
 void Client::lostConnection()
 {
-   if(finishFlag) {//发送成功退出的时候清除日志
-       //logFile->resize(fileStartPos);//清楚本次所有文件的传输记录
-       logFile->close();//关闭日志文件
-       logFile->remove();//删除日志文件
-       exit(0);//发送完毕，退出程序
-   }
+    if(finishFlag) {//发送成功退出的时候清除日志
+        //logFile->resize(fileStartPos);//清楚本次所有文件的传输记录
+        logFile->close();//关闭日志文件
+        logFile->remove();//删除日志文件
+        exit(0);//发送完毕，退出程序
+    }
     else{
-      //  qDebug()<<"Lost connection!";
-         logFile->close();//关闭日志文件
+        //  qDebug()<<"Lost connection!";
+        logFile->close();//关闭日志文件
         std::cout<<'\n'<<"Reconnecting......"<<std::endl;
         connectToServer();//重新连接
-        std::cout<<"The network connection has been restored!"<<std::endl;
-   }
+       // std::cout<<"The network connection has been restored!"<<std::endl;
+         emit taskCodeComing();//接收任务代号
+    }
 }
 
 
@@ -284,7 +284,6 @@ void Client::responseTask()
     //应用程序的recore目录下查找一下有没有这个文件
     logFile = new QFile(QCoreApplication::applicationDirPath()+ "/record" + "/" + taskCodeFile);//以本次任务编号为名字创建日志文件
     if(logFile->exists()){ //断点任务
-       // qDebug()<<"exit";
         taskType = TaskType::BREAKTASK;
         logFile->open(QIODevice::ReadWrite| QIODevice::Append);//打开这个日志文件
         logFile->seek(0);//将文件指针移动到起始位置
@@ -311,7 +310,6 @@ void Client::responseTask()
         }
     }
     else{//新任务
-
         taskType = TaskType::NEWTASK ;//新任务
         logFile->open(QIODevice::ReadWrite| QIODevice::Append);//以追加的方式将文件名字写入日志
         logFile->write(QByteArray("|"));//日志首位置也加上一个'|'符号

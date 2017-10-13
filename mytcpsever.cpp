@@ -13,5 +13,4 @@ MyTcpSever::~MyTcpSever()
 void MyTcpSever::incomingConnection(qintptr socketDescriptor)
 {
     emit newClientConnection(socketDescriptor);
-
 }

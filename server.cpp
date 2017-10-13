@@ -6,7 +6,6 @@
 #include<Windows.h>
 
 std::string Server::dirpath;//定义静态变量
-
 Server::Server(const char *inputPort)
 {
     ThreadNum = 0;
@@ -24,6 +23,7 @@ Server::Server(const char *inputPort)
     }
     else{std::cout<<"Function  isListening()  error!"<<std::endl; }
     connect(server, SIGNAL(newClientConnection(qintptr)), this, SLOT(newConnectionSlot(qintptr)));//当有新的连接的时候，就会执行槽函数
+    connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
 }
 
 
@@ -45,14 +45,13 @@ Server::~Server()
 //当有新的连接的时候响应这个函数
 void Server::newConnectionSlot(qintptr ptr1)
 {
-    tcpSock->setSocketDescriptor(ptr1);//为这个套接字设置套接字描述符
-    FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
-
-    sender = new Sender(tcpSock,&queueSend);//创建文件发送器,参数1是套接字，参数2是文件队列
-    connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
-
+    if(!tcpSock->setSocketDescriptor(ptr1)){//为这个套接字设置套接字描述符
+        qDebug()<<"setSocketDescriptor failed!";
+    }
+   FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
+    sender->setSocket(tcpSock);//设置发送套接字
+    sender->setFileQueue(&queueSend);//设置发送队列
     sender->sendTaskCode();//发送任务代号
-    // sender->sendFile();//发送文件
 }
 
 //退出程序

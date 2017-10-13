@@ -32,7 +32,6 @@ private:
 
 private slots:
     void findChangefile(const QString &path);//找到变化的文件，并存到队列中
-
 private:
     QFileSystemWatcher myWatcher;
     std::map<QString,size_t> mymapCur;//当前目录下文件快照

@@ -11,17 +11,16 @@
 
 
 //传输发送套接字和队列的指针才能进行启动sender
-Sender::Sender( QTcpSocket *socket, std::queue<QString> *queue): m_Socket(socket),Fileque(queue)
+Sender::Sender()
 {
-    connect(m_Socket,SIGNAL(disconnected()),SLOT(LostConnection()));//连接显示断开连接的信号与槽
+    m_Socket = NULL;
+    Fileque = NULL;
     connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed()));//连接显示传输进度的信号与槽
     finishFlag = false;
     finishByte = 0;
     cunrrentFinishByte = 0;
     FileLength = 0;
     FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),fileQueue);//获得文件列表
-    connect(m_Socket,SIGNAL(readyRead()),this,SLOT(acceptRequest()));
-
 }
 
 Sender::~Sender()
@@ -44,7 +43,6 @@ void Sender::sendFile(std::queue<QString> &curfileQueue)
     char *FileNum = new char[i64FileNum];//文件个数数组
     memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
     m_Socket->write(FileNum,8);//把文件个数发过去
-
 
     while(curfileQueue.size())//有几个文件就执行几次
     {
@@ -98,7 +96,6 @@ void Sender::sendFile(std::queue<QString> &curfileQueue)
             return;
         }
         emit refresh(cunrrentFinishByte);//显示进度
-
         file.close();
         delete []SendBuffer;
         delete []SendPath;
@@ -113,14 +110,29 @@ void Sender::sendFile(std::queue<QString> &curfileQueue)
 
 
 
-//发送文件清单给客户端
+//发送任务代号
 void Sender::sendTaskCode()
 {   
     QString s = QString::number(nameHash(fileQueue.front()), 10);
     QByteArray data = s.toLatin1();
-    m_Socket->write(data);//发送总的文件个数
+    m_Socket->write(data);
     m_Socket->waitForBytesWritten();
-  //如果清单没有发送去过的话就认为本次任务发送失败直接清楚所有缓存数据
+}
+
+
+//设置发送套接字
+void Sender::setSocket(QTcpSocket *socket)
+{
+    m_Socket = socket;//更新套接字
+    connect(m_Socket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//重新连接
+    connect(m_Socket,SIGNAL(readyRead()),this,SLOT(acceptRequest()));
+}
+
+
+//设置文件队列
+void Sender::setFileQueue(std::queue<QString> *queue)
+{
+    Fileque = queue;
 }
 
 
@@ -133,7 +145,7 @@ bool Sender::adjustedQueues(QByteArray fileName , std::queue<QString> &fileQue)
     QByteArray s = qstr.toLatin1();
     fileName.insert(0,s[0]);//修改成与队列中一样的盘符
     QString qStringFileName = fileName;
-   while(fileQue.size()){
+    while(fileQue.size()){
         if(qStringFileName != fileQue.front()){
             fileQue.pop();
         }
@@ -142,8 +154,9 @@ bool Sender::adjustedQueues(QByteArray fileName , std::queue<QString> &fileQue)
         }
     }
   return fileQue.size() > 0;
-
 }
+
+
 
 //制作任务编号 //有BUG版本
 unsigned long Sender::nameHash(const QString &key)
@@ -163,8 +176,9 @@ void Sender::LostConnection()
         emit finishSend();//发个信号通知主程序退出
     //掉线了
     else{
-
-        std::cout<<'\n'<<"Reconnecting......";
+        std::cout<<'\n'<<"Reconnecting......"<<std::endl;
+        disconnect(m_Socket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//解开连接
+        disconnect(m_Socket,SIGNAL(readyRead()),this,SLOT(acceptRequest()));//解开连接
     }
 }
 
@@ -172,7 +186,7 @@ void Sender::LostConnection()
 //显示进度速度等信息
 void Sender::showSpeed()
 {
-//    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
+    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
     printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
            (double)finishByte/1048576,
            "/",
@@ -191,26 +205,23 @@ void Sender::acceptRequest()
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
     QByteArray fileName = messageContext.left(indexPos);//获取文件名
     QByteArray filePos = messageContext.right(messageContext.length() - indexPos -1);//获取断点位置
+//    qDebug()<<"file name is : "<<fileName;
+//    qDebug()<<"file pos is "<<filePos;
     if(fileName.length() == 0 && filePos == "0"){
         std::queue<QString>fileQueCur = fileQueue;
         sendFile(fileQueCur);//发送全部文件
     }
     else{//断点任务
-      //  qDebug()<<fileName;
-        //qDebug()<<filePos;
-
-       //从断点处发送文件
-        std::queue<QString> sendQue = fileQueue;//获取一个完整文件队列
-
-       if(adjustedQueues(fileName,sendQue)){
         //从断点处发送文件
-         sendFile(sendQue);
-       }
-       else{
+        std::queue<QString> sendQue = fileQueue;//获取一个完整文件队列
+        if(adjustedQueues(fileName,sendQue)){//把队列待发送队列调整到断点前状态
+            //从断点处发送文件
+          sendFile(sendQue);//发送文件
+        }
+        else{
            qDebug()<<"different task!";
-           return;
-       }
+            return;
+        }
     }
-
 }
 

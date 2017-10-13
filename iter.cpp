@@ -31,7 +31,6 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
     int count;
     if(iArgc <=1){cout<<"Lack of param!"<<endl; return ;}
     if(NULL == p_cCmd){ printf("No available param from argv!");  return;}
-
   // while(1)
    {
         printf("\n(AutoSend):");

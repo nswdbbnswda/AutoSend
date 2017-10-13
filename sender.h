@@ -16,11 +16,12 @@ class Sender : public QObject
 {
     Q_OBJECT
 public:
-    explicit Sender( QTcpSocket *socket, std::queue<QString> *queue);
-    Sender() = default;
+    explicit Sender();
     virtual ~Sender();
     void sendFile(std::queue<QString> &curfileQueue);//发送文件
     void sendTaskCode();//发送文件清单
+    void setSocket( QTcpSocket *socket);//设置发送套接字
+    void setFileQueue( std::queue<QString> *queue);//设置待发送文件队列
 private:
     QTcpSocket *m_Socket;//用于发送的套接字
     std::queue<QString> *Fileque;//待发送的文件队列

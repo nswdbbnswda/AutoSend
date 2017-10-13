@@ -8,7 +8,7 @@ public:
     explicit MyTcpSever();
     virtual ~MyTcpSever();
 protected:
-    void incomingConnection(qintptr socketDescriptor);
+   virtual void incomingConnection(qintptr socketDescriptor);
 private:
 signals:
     void newClientConnection(qintptr socketDescriptor);
