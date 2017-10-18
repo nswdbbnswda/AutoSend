@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
     iter.interacter(argc,argv);//启动用户交互线程
 
 
+
     return a.exec();
 
 }

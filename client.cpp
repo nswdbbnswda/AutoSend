@@ -107,7 +107,9 @@ void Client::receiveData()
         qDebug()<<fullPath;//显示当前传输的文件名称
         //在硬盘上建立该文件
         QFile file(vTemp.data());
-        file.open(QFile::WriteOnly);//只写方式打开
+       //file.open(QFile::WriteOnly);//追加方式打开文件  QIODevice::ReadWrite| QIODevice::Append;//打开这个日志文件
+        file.open(QIODevice::ReadWrite|QIODevice::Append);//以追加的方式打开要写入的文件
+
 
         vTemp.append(fileNameSeparator);//在文件名末尾添加一个分隔符
         logFile->write(vTemp); //写入日志文件

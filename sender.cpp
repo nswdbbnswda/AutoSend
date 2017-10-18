@@ -20,6 +20,7 @@ Sender::Sender()
     finishByte = 0;
     cunrrentFinishByte = 0;
     FileLength = 0;
+    breakFlag = false;
     FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),fileQueue);//获得文件列表
 }
 
@@ -35,8 +36,9 @@ Sender::~Sender()
 
 
 //发送文件
-void Sender::sendFile(std::queue<QString> &curfileQueue)
+void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 {
+    breakFlag = pos;
     qint64 i64FileNum =(qint64)curfileQueue.size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
     //告诉对面有多少个文件要接收
@@ -54,7 +56,14 @@ void Sender::sendFile(std::queue<QString> &curfileQueue)
         file.open(QFile::ReadOnly);//以只读的方式打开
         qDebug()<<fullpath;//显示当前传输的文件
         finishByte = 0;
+
         FileLength  = file.size();//获取文件长度
+        if(breakFlag){//断点续传任务
+            FileLength = FileLength - pos;//将文件剩余的部分 进行发送
+            file.seek(pos);//移动文件指针到断点处
+            breakFlag = false;
+        }
+
         qint64 BlockNum = FileLength / IPMSG_DEFAULT_IOBUFMAX;//整包数量
         qint64 temp = BlockNum;//备份整包数量
         qint64 LastBlock = FileLength % IPMSG_DEFAULT_IOBUFMAX;//最后一块文件的大小
@@ -110,6 +119,10 @@ void Sender::sendFile(std::queue<QString> &curfileQueue)
 
 
 
+
+
+
+
 //发送任务代号
 void Sender::sendTaskCode()
 {   
@@ -136,15 +149,24 @@ void Sender::setFileQueue(std::queue<QString> *queue)
 }
 
 
-
-//调整文件队列到断点前状态
-bool Sender::adjustedQueues(QByteArray fileName , std::queue<QString> &fileQue)
+//恢复文件路径名称  //输入一个常量引用返回一个QString
+QString Sender::restorFilepath(const QByteArray &outSidefileName)
 {
+    QByteArray fileName = outSidefileName;
     fileName.remove(0,1);//删除第一个字节（盘符）
     QString qstr = QString::fromStdString(Server::dirpath);//取路径首字母
     QByteArray s = qstr.toLatin1();
     fileName.insert(0,s[0]);//修改成与队列中一样的盘符
     QString qStringFileName = fileName;
+    return qStringFileName;
+}
+
+
+
+//调整文件队列到断点前状态
+bool Sender::adjustedQueues(const QByteArray &fileName , std::queue<QString> &fileQue)
+{
+    QString qStringFileName = restorFilepath(fileName);
     while(fileQue.size()){
         if(qStringFileName != fileQue.front()){
             fileQue.pop();
@@ -153,7 +175,7 @@ bool Sender::adjustedQueues(QByteArray fileName , std::queue<QString> &fileQue)
             break;
         }
     }
-  return fileQue.size() > 0;
+    return fileQue.size() > 0;
 }
 
 
@@ -205,6 +227,7 @@ void Sender::acceptRequest()
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
     QByteArray fileName = messageContext.left(indexPos);//获取文件名
     QByteArray filePos = messageContext.right(messageContext.length() - indexPos -1);//获取断点位置
+
 //    qDebug()<<"file name is : "<<fileName;
 //    qDebug()<<"file pos is "<<filePos;
     if(fileName.length() == 0 && filePos == "0"){
@@ -212,11 +235,11 @@ void Sender::acceptRequest()
         sendFile(fileQueCur);//发送全部文件
     }
     else{//断点任务
-        //从断点处发送文件
         std::queue<QString> sendQue = fileQueue;//获取一个完整文件队列
         if(adjustedQueues(fileName,sendQue)){//把队列待发送队列调整到断点前状态
-            //从断点处发送文件
-          sendFile(sendQue);//发送文件
+          QString intPos = filePos;
+          qint64 qintPos = intPos.toInt();//转换成整型
+          sendFile(sendQue,qintPos);//发送文件
         }
         else{
            qDebug()<<"different task!";
