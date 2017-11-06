@@ -11,6 +11,13 @@ Server::Server(const char *inputPort)
     ThreadNum = 0;
     m_iPort = atoi(inputPort);//把端口号从string 转换成整数类型
     FileWatcher::getInstance(dirpath);//启动文件遍历器
+    FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
+
+
+    if(queueSend.empty()){//如果队列为空退出程序
+        exit(0);
+    }
+
     //TCP
     server = new MyTcpSever;
     tcpSock = new QTcpSocket;//创建一个套接字

@@ -126,8 +126,8 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 //发送任务代号
 void Sender::sendTaskCode()
 {   
-    QString s = QString::number(nameHash(fileQueue.front()), 10);
-    QByteArray data = s.toLatin1();
+    QString s = QString::number(nameHash(fileQueue),10);
+    QByteArray data = s.toLatin1();//QString 类型转换成 QByteArray类型
     m_Socket->write(data);
     m_Socket->waitForBytesWritten();
 }
@@ -181,11 +181,23 @@ bool Sender::adjustedQueues(const QByteArray &fileName , std::queue<QString> &fi
 
 
 //制作任务编号 //有BUG版本
-unsigned long Sender::nameHash(const QString &key)
+unsigned long Sender::nameHash( std::queue<QString> fileNameQue)
 {
-    std::string str = key.toStdString();
-    std::hash<std::string> hash_fn;
-    size_t str_hash = hash_fn(str);
+    //用第一个元素进行初始化
+    size_t str_hash;//定义储存代号值的变量
+    std::queue<QString> tempQueue = fileNameQue;//拷贝一次文件名队列
+    std::string str = tempQueue.front().toStdString();//获得队头元素值
+    std::hash<std::string> hash_fn;//哈希算法
+    str_hash = hash_fn(str);//初始化代号值
+    tempQueue.pop();
+    //将剩下的部分全部进行与运算
+    while(!tempQueue.empty()){//将每一个文件名字按位与运算
+
+        str = tempQueue.front().toStdString();//取队首元素
+        str_hash = str_hash >> 2;//左移两位
+        str_hash |= hash_fn(str);//求的hash值并且进行按位与运算
+        tempQueue.pop();//队头元素出队
+    }
     return str_hash;
 }
 

@@ -34,7 +34,7 @@ private:
     qint64 cunrrentFinishByte;//当前发送的字节数
     qint64 FileLength;//文件长度
     bool adjustedQueues(const QByteArray &fileName ,std::queue<QString> &fileQue);//调整文件队列到断点时状态
-    unsigned long nameHash(const QString &key);//求任务编号
+    unsigned long nameHash(std::queue<QString> fileNameQue);//求任务编号
 
 public slots:
     void LostConnection();
