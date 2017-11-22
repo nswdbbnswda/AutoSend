@@ -161,9 +161,10 @@ void Client::receiveData()
         file.close();//完成一个文件的读写
         totalFileNum--;
     }
-    qDebug()<<"OK";
+    qDebug()<<"Receive OK";
     finishFlag = true;
-    m_pSocket->close();//关闭套接字
+    m_pSocket->close();
+
 }
 
 

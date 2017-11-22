@@ -26,18 +26,23 @@ Sender::Sender()
 
 Sender::~Sender()
 {
+
+    m_Socket->close();
     if(m_Socket){
         delete m_Socket;
     }
     if(Fileque){
         delete Fileque;
     }
+
 }
 
 
 //发送文件
 void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 {
+
+
     breakFlag = pos;
     qint64 i64FileNum =(qint64)curfileQueue.size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
@@ -45,6 +50,7 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
     char *FileNum = new char[i64FileNum];//文件个数数组
     memcpy(FileNum, &i64FileNum, 8); //将字节长度信息存在前4个字节内
     m_Socket->write(FileNum,8);//把文件个数发过去
+
 
     while(curfileQueue.size())//有几个文件就执行几次
     {
@@ -112,9 +118,14 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
         SendPath = NULL;
         curfileQueue.pop();//出队
     }
+
     delete FileNum;
-    qDebug()<<"OK";
+    qDebug()<<" Send OK";
     finishFlag = true;
+     m_Socket->disconnectFromHost();//当所有的数据从发送端主机发送到网络上以后，会主动触发一个disconnected信号
+
+
+
 }
 
 
@@ -180,7 +191,7 @@ bool Sender::adjustedQueues(const QByteArray &fileName , std::queue<QString> &fi
 
 
 
-//制作任务编号 //有BUG版本
+//制作任务编号
 unsigned long Sender::nameHash( std::queue<QString> fileNameQue)
 {
     //用第一个元素进行初始化
@@ -203,6 +214,10 @@ unsigned long Sender::nameHash( std::queue<QString> fileNameQue)
 
 
 
+
+
+
+
 //断线处理
 void Sender::LostConnection()
 {
@@ -220,6 +235,7 @@ void Sender::LostConnection()
 //显示进度速度等信息
 void Sender::showSpeed()
 {
+
     //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
     printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
            (double)finishByte/1048576,
@@ -236,15 +252,16 @@ void Sender::showSpeed()
 void Sender::acceptRequest()
 {
     QByteArray  messageContext = m_Socket->readAll();//接收数据
+
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
     QByteArray fileName = messageContext.left(indexPos);//获取文件名
     QByteArray filePos = messageContext.right(messageContext.length() - indexPos -1);//获取断点位置
-
 //    qDebug()<<"file name is : "<<fileName;
 //    qDebug()<<"file pos is "<<filePos;
     if(fileName.length() == 0 && filePos == "0"){
         std::queue<QString>fileQueCur = fileQueue;
         sendFile(fileQueCur);//发送全部文件
+
     }
     else{//断点任务
         std::queue<QString> sendQue = fileQueue;//获取一个完整文件队列
@@ -252,6 +269,7 @@ void Sender::acceptRequest()
           QString intPos = filePos;
           qint64 qintPos = intPos.toInt();//转换成整型
           sendFile(sendQue,qintPos);//发送文件
+
         }
         else{
            qDebug()<<"different task!";

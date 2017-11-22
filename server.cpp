@@ -61,6 +61,8 @@ void Server::newConnectionSlot(qintptr ptr1)
     sender->sendTaskCode();//发送任务代号
 }
 
+
+
 //退出程序
 void Server::quitAutoSend()
 {
