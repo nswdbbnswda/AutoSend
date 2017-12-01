@@ -14,7 +14,6 @@
 Sender::Sender()
 {
     m_Socket = NULL;
-    Fileque = NULL;
     connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed()));//连接显示传输进度的信号与槽
     finishFlag = false;
     finishByte = 0;
@@ -26,15 +25,10 @@ Sender::Sender()
 
 Sender::~Sender()
 {
-
     m_Socket->close();
     if(m_Socket){
         delete m_Socket;
     }
-    if(Fileque){
-        delete Fileque;
-    }
-
 }
 
 
@@ -123,9 +117,6 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
     qDebug()<<" Send OK";
     finishFlag = true;
      m_Socket->disconnectFromHost();//当所有的数据从发送端主机发送到网络上以后，会主动触发一个disconnected信号
-
-
-
 }
 
 
@@ -153,11 +144,6 @@ void Sender::setSocket(QTcpSocket *socket)
 }
 
 
-//设置文件队列
-void Sender::setFileQueue(std::queue<QString> *queue)
-{
-    Fileque = queue;
-}
 
 
 //恢复文件路径名称  //输入一个常量引用返回一个QString

@@ -10,9 +10,7 @@ Server::Server(const char *inputPort)
 {
     ThreadNum = 0;
     m_iPort = atoi(inputPort);//把端口号从string 转换成整数类型
-    FileWatcher::getInstance(dirpath);//启动文件遍历器
     FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
-
 
     if(queueSend.empty()){//如果队列为空退出程序
         exit(0);
@@ -55,9 +53,7 @@ void Server::newConnectionSlot(qintptr ptr1)
     if(!tcpSock->setSocketDescriptor(ptr1)){//为这个套接字设置套接字描述符
         qDebug()<<"setSocketDescriptor failed!";
     }
-    FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
     sender->setSocket(tcpSock);//设置发送套接字
-    sender->setFileQueue(&queueSend);//设置发送队列
     sender->sendTaskCode();//发送任务代号
 }
 

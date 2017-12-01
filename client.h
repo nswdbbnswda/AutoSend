@@ -25,7 +25,7 @@ private:
     char        *ReceiveHead;
     qint32      port,Flag;
     qint64      FileLength;//文件总字节数
-    std::string ipAddr;
+    std::string ipAddr;//IP地址
     qint64      FileNumber;
     QFile       *logFile;
     bool        finishFlag;

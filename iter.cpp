@@ -27,6 +27,8 @@ Iter::~Iter()
 
 void Iter::interacter(int iArgc ,char **p_cCmd)
 {
+   // std::cout<<*(*p_cCmd + 1)<<std::endl;//显示第一个字符串
+
     char com[20], *fileName;
     int count;
     if(iArgc <=1){cout<<"Lack of param!"<<endl; return ;}

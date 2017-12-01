@@ -35,35 +35,22 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     //连接信号和槽将数据接收并存到硬盘中
     connect(this, SIGNAL(dataComing()),this, SLOT(receiveData()));
     //emit dataComing();//发送信号，文件来了
-     connect(this,SIGNAL(taskCodeComing()),this,SLOT(responseTask()));
+    connect(this,SIGNAL(taskCodeComing()),this,SLOT(responseTask()));
      emit taskCodeComing();//接收任务代号
 
 }
 
 
-
-
-
 Client::~Client()
 {
-    if(m_pSocket) {
-        delete m_pSocket;
-        m_pSocket = NULL;
-    }
-    if(logFile){
-        delete logFile;
-        logFile = NULL;
-    }
+    if(m_pSocket) {delete m_pSocket; m_pSocket = NULL; }
+    if(logFile){delete logFile; logFile = NULL; }
 }
-
-
 
 
 //接收数据
 void Client::receiveData()
 { 
-
-
     //等待发送端把文件的个数发送的过来
     QByteArray  fileNum;
     qint64  totalFileNum = 0;
@@ -80,7 +67,6 @@ void Client::receiveData()
         time.restart();
         finishByte = 0;
 
-
         while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
             m_pSocket->waitForReadyRead();
         }
@@ -91,8 +77,11 @@ void Client::receiveData()
             m_pSocket->waitForReadyRead();
         }
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
+
+
         vTemp.remove(0,1);//删除第一个字节（盘符）
         vTemp.insert(0,QByteArray("D"));//更改为D盘符
+
         //搞定路径
         QString fullPath(vTemp);//QByteArray 转换成 QString
         makePath(fullPath);//搞定路径问题,如果没有则创建
@@ -107,8 +96,6 @@ void Client::receiveData()
         }else{//新任务
            file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
         }
-
-
 
         vTemp.append(fileNameSeparator);//在文件名末尾添加一个分隔符
         logFile->write(vTemp); //写入日志文件
@@ -164,9 +151,7 @@ void Client::receiveData()
     qDebug()<<"Receive OK";
     finishFlag = true;
     m_pSocket->close();
-
 }
-
 
 
 //失去连接时
@@ -189,8 +174,6 @@ void Client::lostConnection()
 }
 
 
-
-
 //显示传输进度
 void Client::showSpeed()
 {
@@ -207,7 +190,6 @@ void Client::showSpeed()
 
 
 
-
 //文件全路径，输出:在该路径上创建文件
 bool  Client::makePath(const QString &dirName)//文件全路径(包含文件名）
 {
@@ -215,15 +197,12 @@ bool  Client::makePath(const QString &dirName)//文件全路径(包含文件名�
     QFileInfo fileInfo(dirName);
     fullPath = fileInfo.absolutePath();//全路径，不包括文件名
     QDir dir(fullPath);//创建目录对象
-    if(dir.exists()){
-        return true;
-    }
+    if(dir.exists()){   return true; }
     else{
         bool ok = dir.mkpath(fullPath);//创建多级目录
         return ok;
     }
 }
-
 
 
 
@@ -235,8 +214,6 @@ void Client::connectToServer()
         if(m_pSocket->waitForConnected()) break;//如果连上了服务器，函数返回
     }
 }
-
-
 
 
 //从日志中找到断点
@@ -255,11 +232,6 @@ bool Client::findBreakPoint(const QByteArray & logArray)
     logFile->seek(breakPointFileHeadPos + 1);//调整文件指针位置，到断点文件的起始位置
     return true;
 }
-
-
-
-
-
 
 
 //响应任务
@@ -326,9 +298,6 @@ void Client::responseTask()
         emit dataComing();//发送信号，接收文件
     }
 }
-
-
-
 
 
 //向服务端请求从索引处发送文件

@@ -29,16 +29,12 @@ private:
     QTcpSocket *m_Socket;//连接套接字
     std::string path;
     qint64 ThreadNum;
-    FileWatcher *f1;
     qint32 m_iPort;
     Sender *sender;//发送器
     QTcpSocket *tcpSock;//发送文件的套接字
     std::queue<QString> queueSend;//文件队列
-
 public:
     static std::string dirpath;//声明
-signals:
-
 private slots:
     void newConnectionSlot(qintptr ptr1);//对新的TCP连接进行处理
 public slots:

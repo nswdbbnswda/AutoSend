@@ -15,11 +15,9 @@ public:
     ~Iter();
     void interacter(int iArgc ,char **p_cCmd);//用户交互
     void transfStr(char *dest, int flag);
-
 private:
     Client *client;
     Server *server;
-
 };
 
 

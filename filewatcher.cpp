@@ -2,14 +2,11 @@
 #include<iostream>
 
 
-std::queue<QString> FileWatcher::fileQueue;//定义一个静态队列
 FileWatcher::FileWatcher(const std::string &s):FileBase(s)
 {
     GetFileList((QString::fromStdString(strPath)),mymapLast);//遍历一边目录找出所有文件存到Map中作为map第一次记录
     qDebug()<<"File number:"<<mymapLast.size();//显示文件个数
 }
-
-
 
 FileWatcher::~FileWatcher()
 {
@@ -22,10 +19,8 @@ void FileWatcher::GetFileList(const QString &path, std::map<QString,size_t> &sav
 {
     QString fuck = path;
     QDir dir(fuck);//实例化一个目录对象
-    if(!dir.exists()) //判断路径是否存在
-    {
-        return ;
-    }
+    if(!dir.exists()) { return ;}//判断路径是否存在
+
     QDirIterator dir_iterator(fuck,QDir::Files|QDir::Hidden,QDirIterator::Subdirectories);//能筛出所有文件,不能遍历出快捷方式QDir::NoSymLinks
     while(dir_iterator.hasNext())//遍历目录
     {
@@ -41,9 +36,7 @@ void FileWatcher::GetFileList(const QString &path, std::queue<QString> &saveQueu
 {
     QString fuck = path;
     QDir dir(fuck);//实例化一个目录对象
-    if(!dir.exists()) {//判断路径是否存在
-        return ;
-    }
+    if(!dir.exists()) { return ;}//判断路径是否存在
     QStringList filters; //获取所选文件类型过滤器
     filters<<QString("*.*");
     // QDirIterator dir_iterator(fuck,filters,QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
