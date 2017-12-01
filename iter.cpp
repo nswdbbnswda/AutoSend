@@ -85,7 +85,8 @@ void Iter::interacter(int iArgc ,char **p_cCmd)
         else if (!strcmp(*(p_cCmd+1), "client") ||
                  !strcmp(*(p_cCmd+1), "c"))
         {
-          client  = new Client(*(p_cCmd+2),*(p_cCmd+3));//client 127.0.0.1 5000
+          client  = new Client(*(p_cCmd+2),*(p_cCmd+3),*(p_cCmd + 4));//client 127.0.0.1 5000
+
 
 
         }

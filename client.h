@@ -13,7 +13,7 @@
 class Client : QObject
 {Q_OBJECT
 public:
-    explicit Client(const std::string strIpAddr,const std::string intputPort);
+    explicit Client(const std::string strIpAddr,const std::string intputPort,const std::string _savePath);
     virtual~Client();
     enum TaskType{NEWTASK,BREAKTASK};
 
@@ -26,6 +26,7 @@ private:
     qint32      port,Flag;
     qint64      FileLength;//文件总字节数
     std::string ipAddr;//IP地址
+    std::string savePath;
     qint64      FileNumber;
     QFile       *logFile;
     bool        finishFlag;
@@ -39,6 +40,7 @@ private:
     QByteArray logContext;//日志内容
     QByteArray breakFileName;//断点文件的名字
     qint64     breakFileLength;//断点文件已经接收的长度
+    QString fullNameT;  //全路径
 protected:
     BreakPoint breakPoint;//断点
 private:

@@ -5,7 +5,7 @@
 #include"autosend.h"
 
 //启动客户端后就开始连接服务端
-Client::Client(const std::string strIpAddr,const std::string  inputPort)
+Client::Client(const std::string strIpAddr,const std::string  inputPort,const std::string _savePath)
 {
     nameLength = 0;
     receiveName = NULL;
@@ -20,6 +20,7 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     FileLength = 0;
     FileNumber = 0;
     ipAddr = strIpAddr;
+    savePath = _savePath;
     finishByte = 0;
     cunrrentFinishByte = 0;
     fileStartPos = 0;
@@ -29,6 +30,12 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     port = atoi(inputPort.c_str());//把端口号从string 类型转换成 整型
     m_pSocket = new QTcpSocket();//创建客户端套接字
     m_pSocket->setReadBufferSize(IPMSG_DEFAULT_QTINERBUFFER);//设置QT内部缓冲区大小为10M
+
+
+    logFile = new QFile(QCoreApplication::applicationDirPath()+ "/log.txt");//以本次任务编号为名字创建日志文件
+    logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);//覆盖打开日志
+
+
     connectToServer();//连接服务器
     connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
     connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(lostConnection()));//断开连接了做异常处理
@@ -36,6 +43,8 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     connect(this, SIGNAL(dataComing()),this, SLOT(receiveData()));
     //emit dataComing();//发送信号，文件来了
     connect(this,SIGNAL(taskCodeComing()),this,SLOT(responseTask()));
+
+
      emit taskCodeComing();//接收任务代号
 
 }
@@ -76,31 +85,38 @@ void Client::receiveData()
         while(m_pSocket->bytesAvailable() < nameLength){//如果当前缓冲区字节数不足nameLength，就缓冲到足为止
             m_pSocket->waitForReadyRead();
         }
+
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
 
 
-        vTemp.remove(0,1);//删除第一个字节（盘符）
-        vTemp.insert(0,QByteArray("D"));//更改为D盘符
+        QString  fullPath = vTemp;
 
-        //搞定路径
-        QString fullPath(vTemp);//QByteArray 转换成 QString
+
         makePath(fullPath);//搞定路径问题,如果没有则创建
-        qDebug()<<fullPath;//显示当前传输的文件名称
+
+        //qDebug()<<fullPath;
+
+         qDebug()<<fullNameT;
 
 
+        // QString fullPath(vTemp);//QByteArray 转换成 QString
+        //qDebug()<<fullNameT;//显示当前传输的文件名称
         //在硬盘上建立该文件
-        QFile file(vTemp.data());
+       // vTemp = fullNameT.toLatin1();
+       // qDebug()<<vTemp.data();
 
-        if(breakFileName == vTemp && taskType == TaskType::BREAKTASK  ){//对断点任务的第一个文件进行追加处理
-           file.open(QIODevice::ReadWrite|QIODevice::Append);//以追加的方式打开要写入的文件
-        }else{//新任务
-           file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
-        }
 
-        vTemp.append(fileNameSeparator);//在文件名末尾添加一个分隔符
-        logFile->write(vTemp); //写入日志文件
+
+        QFile file(fullNameT);
+
+
+        file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
+        logFile->write(fullNameT.toStdString().c_str()); //写入日志文件
+
         logFile->flush();//刷新一下内容
-       // logFile->write("\r\n");//日志格式
+        logFile->write("\r\n");//日志格式
+
+
         //读12个字节的文件头信息
         while(m_pSocket->bytesAvailable() < 12){
             m_pSocket->waitForReadyRead();
@@ -158,18 +174,12 @@ void Client::receiveData()
 void Client::lostConnection()
 {
     if(finishFlag) {//发送成功退出的时候清除日志
-        //logFile->resize(fileStartPos);//清楚本次所有文件的传输记录
         logFile->close();//关闭日志文件
-        logFile->remove();//删除日志文件
         exit(0);//发送完毕，退出程序
     }
     else{
-        //  qDebug()<<"Lost connection!";
         logFile->close();//关闭日志文件
-        std::cout<<'\n'<<"Reconnecting......"<<std::endl;
-        connectToServer();//重新连接
-       // std::cout<<"The network connection has been restored!"<<std::endl;
-         emit taskCodeComing();//接收任务代号
+        exit(0);
     }
 }
 
@@ -193,15 +203,17 @@ void Client::showSpeed()
 //文件全路径，输出:在该路径上创建文件
 bool  Client::makePath(const QString &dirName)//文件全路径(包含文件名）
 {
-    QString fullPath;
+    QString prePath = QString::fromStdString(savePath);//自定义的路径
     QFileInfo fileInfo(dirName);
-    fullPath = fileInfo.absolutePath();//全路径，不包括文件名
-    QDir dir(fullPath);//创建目录对象
-    if(dir.exists()){   return true; }
-    else{
-        bool ok = dir.mkpath(fullPath);//创建多级目录
-        return ok;
-    }
+    fullNameT = prePath + "/" + fileInfo.fileName();//要储存的全路径
+
+
+      QDir dir(prePath);//创建目录对象
+      if(dir.exists()){   return true; }
+      else{
+          bool ok = dir.mkpath(prePath);//创建多级目录
+          return ok;
+      }
 }
 
 
@@ -244,59 +256,9 @@ void Client::responseTask()
     m_pSocket->waitForReadyRead();//阻塞等待至少有一个字节可读
     taskCode = m_pSocket->readAll();//接收任务编号
     QString taskCodeFile = taskCode;
-    //应用程序的recore目录下查找一下有没有这个文件
-    logFile = new QFile(QCoreApplication::applicationDirPath()+ "/record" + "/" + taskCodeFile);//以本次任务编号为名字创建日志文件
-    if(logFile->exists()){ //断点任务
-        taskType = TaskType::BREAKTASK;
-        logFile->open(QIODevice::ReadWrite| QIODevice::Append);//打开这个日志文件
-        logFile->seek(0);//将文件指针移动到起始位置
-        logContext = logFile->readAll();//把日志读到内存中
-        fileStartPos = logFile->pos();//获得文件当前位置
-        if(!findBreakPoint(logContext)){//找到断点文件名
 
-            //日志文件中没有文件名字
-            qDebug()<<"Log exists, but there is no breakpoint log file records, the program will default to the new task to deal with";
-            logFile->close();//关闭日志文件
-            logFile->remove();//删除日志文件
-            //认为是新任务
-            taskType = TaskType::NEWTASK ;
-            logFile->open(QIODevice::ReadWrite| QIODevice::Append);//以追加的方式将文件名字写入日志
-            logFile->write(QByteArray("|"));//日志首位置也加上一个'|'符号
-            sendIndexPos();//请求服务端发送文件
-            emit dataComing();//发送信号，接收文件
-            return;
-        }
-        QFile breakFile(breakFileName.data());
-        if(breakFile.exists()){//如果断点文件在硬盘上存在
-            breakFile.open(QFile::ReadOnly);//以只读的方式打开
-            breakFileLength = breakFile.size();//获取断点文件长度
-            breakFile.close();//关闭文件
-            QString  requestName = breakFileName;
-
-            sendIndexPos(requestName,breakFileLength);//请求服务端发送文件
-            emit dataComing();//发送信号，文件来了
-        }
-        else{
-            qDebug()<<"Log exists, but did not find the breakpoint file, the breakpoint file may have been deleted, the default for the new task to be processed";//有任务代号记录，但是记录中的文件被用户删除了，此时，删除日志文件，并且默认为新任务
-            logFile->close();//关闭日志文件
-            logFile->remove();//删除日志文件
-
-            //认为是新任务
-            taskType = TaskType::NEWTASK ;
-            logFile->open(QIODevice::ReadWrite| QIODevice::Append);//以追加的方式将文件名字写入日志
-            logFile->write(QByteArray("|"));//日志首位置也加上一个'|'符号
-            sendIndexPos();//请求服务端发送文件
-            emit dataComing();//发送信号，接收文件
-
-        }
-    }
-    else{//新任务
-        taskType = TaskType::NEWTASK ;
-        logFile->open(QIODevice::ReadWrite| QIODevice::Append);//以追加的方式将文件名字写入日志
-        logFile->write(QByteArray("|"));//日志首位置也加上一个'|'符号
-        sendIndexPos();//请求服务端发送文件
-        emit dataComing();//发送信号，接收文件
-    }
+    sendIndexPos();//请求服务端发送文件
+    emit dataComing();//发送信号，接收文件
 }
 
 
