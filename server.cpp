@@ -4,10 +4,12 @@
 #include<QFile>
 #include<vector>
 #include<Windows.h>
+#include"pathremake.h"
 
 std::string Server::dirpath;//定义静态变量
 Server::Server(const char *inputPort)
 {
+
     ThreadNum = 0;
     m_iPort = atoi(inputPort);//把端口号从string 转换成整数类型
     FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
@@ -45,6 +47,8 @@ Server::~Server()
     if(sender)  delete sender;
     delete FileWatcher::getInstance(Server::dirpath);//释放监视器
 }
+
+
 
 
 //当有新的连接的时候响应这个函数

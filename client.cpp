@@ -4,9 +4,11 @@
 #include <QCoreApplication>
 #include"autosend.h"
 
+
 //启动客户端后就开始连接服务端
-Client::Client(const std::string strIpAddr,const std::string  inputPort)
+Client::Client(const std::string strIpAddr,const std::string  inputPort,const std::string _savePath)
 {
+
     nameLength = 0;
     receiveName = NULL;
     m_pSocket = NULL;
@@ -20,6 +22,12 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort)
     FileLength = 0;
     FileNumber = 0;
     ipAddr = strIpAddr;
+    savePath = _savePath;
+
+
+    //pRm = new PathRemake(QString::fromStdString(_savePath));//创建路径控制器
+
+
     finishByte = 0;
     cunrrentFinishByte = 0;
     fileStartPos = 0;
@@ -45,6 +53,7 @@ Client::~Client()
 {
     if(m_pSocket) {delete m_pSocket; m_pSocket = NULL; }
     if(logFile){delete logFile; logFile = NULL; }
+    //if(pRm) delete pRm;
 }
 
 
@@ -79,14 +88,14 @@ void Client::receiveData()
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
 
 
-        vTemp.remove(0,1);//删除第一个字节（盘符）
-        vTemp.insert(0,QByteArray("D"));//更改为D盘符
+        QString qstrRevPath(vTemp);//接收文件夹文件名  例如传输的文件夹为 DATA 那么 接收结果为 DATA/1.txt
+        QString fullPath = QString::fromStdString(savePath) + "/" + qstrRevPath;
 
-        //搞定路径
-        QString fullPath(vTemp);//QByteArray 转换成 QString
+        qDebug()<<fullPath;//显示改好的路径
+
+         //搞定路径
         makePath(fullPath);//搞定路径问题,如果没有则创建
-        qDebug()<<fullPath;//显示当前传输的文件名称
-
+        vTemp = fullPath.toUtf8();
 
         //在硬盘上建立该文件
         QFile file(vTemp.data());
@@ -196,6 +205,9 @@ bool  Client::makePath(const QString &dirName)//文件全路径(包含文件名�
     QString fullPath;
     QFileInfo fileInfo(dirName);
     fullPath = fileInfo.absolutePath();//全路径，不包括文件名
+
+
+
     QDir dir(fullPath);//创建目录对象
     if(dir.exists()){   return true; }
     else{
@@ -246,6 +258,8 @@ void Client::responseTask()
     QString taskCodeFile = taskCode;
     //应用程序的recore目录下查找一下有没有这个文件
     logFile = new QFile(QCoreApplication::applicationDirPath()+ "/record" + "/" + taskCodeFile);//以本次任务编号为名字创建日志文件
+
+
     if(logFile->exists()){ //断点任务
         taskType = TaskType::BREAKTASK;
         logFile->open(QIODevice::ReadWrite| QIODevice::Append);//打开这个日志文件
@@ -263,7 +277,7 @@ void Client::responseTask()
             logFile->open(QIODevice::ReadWrite| QIODevice::Append);//以追加的方式将文件名字写入日志
             logFile->write(QByteArray("|"));//日志首位置也加上一个'|'符号
             sendIndexPos();//请求服务端发送文件
-            emit dataComing();//发送信号，接收文件
+            emit dataComing();//发送信号，接收文件 按照新任务处理
             return;
         }
         QFile breakFile(breakFileName.data());
@@ -271,9 +285,11 @@ void Client::responseTask()
             breakFile.open(QFile::ReadOnly);//以只读的方式打开
             breakFileLength = breakFile.size();//获取断点文件长度
             breakFile.close();//关闭文件
-            QString  requestName = breakFileName;
 
-            sendIndexPos(requestName,breakFileLength);//请求服务端发送文件
+            QString requestName = breakFileName.right(breakFileName.length() - QString::fromStdString(savePath).length() - 1);//文件全路径总长度减去保存路径长度和"/"分割符号所占的长度 就是文件刚送服务端发送过来的格式
+
+            sendIndexPos(requestName,breakFileLength);//请求服务端断点续传文件
+
             emit dataComing();//发送信号，文件来了
         }
         else{

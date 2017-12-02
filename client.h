@@ -8,12 +8,13 @@
 #include<QDir>
 #include<QTime>
 #include"autosend.h"
+#include"pathremake.h"
 
 
 class Client : QObject
 {Q_OBJECT
 public:
-    explicit Client(const std::string strIpAddr,const std::string intputPort);
+    explicit Client(const std::string strIpAddr,const std::string intputPort,const std::string _savePath);
     virtual~Client();
     enum TaskType{NEWTASK,BREAKTASK};
 
@@ -26,6 +27,7 @@ private:
     qint32      port,Flag;
     qint64      FileLength;//文件总字节数
     std::string ipAddr;//IP地址
+    std::string savePath;//储存文件的路径
     qint64      FileNumber;
     QFile       *logFile;
     bool        finishFlag;
@@ -36,9 +38,11 @@ private:
     char        fileNameSeparator;//文件名分隔符
     int         taskType;//任务类型
     QByteArray  taskCode;//任务编号
-    QByteArray logContext;//日志内容
-    QByteArray breakFileName;//断点文件的名字
-    qint64     breakFileLength;//断点文件已经接收的长度
+    QByteArray  logContext;//日志内容
+    QByteArray  breakFileName;//断点文件的名字
+    qint64      breakFileLength;//断点文件已经接收的长度
+   // PathRemake *pRm;
+
 protected:
     BreakPoint breakPoint;//断点
 private:

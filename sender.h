@@ -9,6 +9,7 @@
 #include<QTime>
 #include<stdio.h>
 #include<iostream>
+#include"pathremake.h"
 
 
 
@@ -31,6 +32,8 @@ private:
     qint64  finishByte;//已经发送的总字节数
     qint64 cunrrentFinishByte;//当前发送的字节数
     qint64 FileLength;//文件长度
+    PathRemake *pRm;
+private:
     bool adjustedQueues(const QByteArray &fileName ,std::queue<QString> &fileQue);//调整文件队列到断点时状态
     unsigned long nameHash(std::queue<QString> fileNameQue);//求任务编号
 public slots:

@@ -5,7 +5,9 @@
 FileWatcher::FileWatcher(const std::string &s):FileBase(s)
 {
     GetFileList((QString::fromStdString(strPath)),mymapLast);//遍历一边目录找出所有文件存到Map中作为map第一次记录
+
     qDebug()<<"File number:"<<mymapLast.size();//显示文件个数
+
 }
 
 FileWatcher::~FileWatcher()
