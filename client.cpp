@@ -23,11 +23,6 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
     FileNumber = 0;
     ipAddr = strIpAddr;
     savePath = _savePath;
-
-
-    //pRm = new PathRemake(QString::fromStdString(_savePath));//创建路径控制器
-
-
     finishByte = 0;
     cunrrentFinishByte = 0;
     fileStartPos = 0;

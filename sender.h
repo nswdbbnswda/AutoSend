@@ -22,17 +22,18 @@ public:
     void sendFile(std::queue<QString> &curfileQueue,qint64 pos = 0);//发送文件
     void sendTaskCode();//发送文件清单
     void setSocket( QTcpSocket *socket);//设置发送套接字
-    QString restorFilepath(const QByteArray & fileName);//恢复文件路径
 private:
     QTcpSocket *m_Socket;//用于发送的套接字
     std::queue<QString> fileQueue;//备份文件队列
+    std::map<QString,QString> nametoFullPath;//将接收到的断点文件转换成全路径文件的字典
+    std::map<QString,QString> fullPathtoName;//路径到文件名的转换
+    std::queue<QString> pathQueue;//要遍历的文件路径队列
     QTime time;
     bool finishFlag;
     bool breakFlag;
     qint64  finishByte;//已经发送的总字节数
     qint64 cunrrentFinishByte;//当前发送的字节数
     qint64 FileLength;//文件长度
-    PathRemake *pRm;
 private:
     bool adjustedQueues(const QByteArray &fileName ,std::queue<QString> &fileQue);//调整文件队列到断点时状态
     unsigned long nameHash(std::queue<QString> fileNameQue);//求任务编号

@@ -7,23 +7,17 @@
 #include"pathremake.h"
 
 std::string Server::dirpath;//定义静态变量
-Server::Server(const char *inputPort)
+Server::Server(const std::string &_strPort)
 {
-
     ThreadNum = 0;
-    m_iPort = atoi(inputPort);//把端口号从string 转换成整数类型
-    FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),queueSend);//通过监视器获得文件列表
-
-    if(queueSend.empty()){//如果队列为空退出程序
-        exit(0);
-    }
+    m_port = atoi(_strPort.data());//把端口号从string 转换成整数类型
 
     //TCP
     server = new MyTcpSever;
     tcpSock = new QTcpSocket;//创建一个套接字
     sender = new Sender;//创建一个文件发送器
     if (!server->isListening()){//监听
-        if (server->listen(QHostAddress::Any, m_iPort)){
+        if (server->listen(QHostAddress::Any,m_port)){
             std::cout<<"open listen port success!"<<std::endl;//提示监听成功
         }
         else{ std::cout<<"open listen port fail!"<<std::endl;}//提示监听失败
@@ -36,19 +30,12 @@ Server::Server(const char *inputPort)
 
 Server::~Server()
 {
-    if(server) {
-        delete server;
-        server = NULL;
-    }
-    if(m_Socket){
-        delete m_Socket;
-    }
+    if(server) {delete server;server = NULL;}
+    if(m_Socket){ delete m_Socket;}
     if(tcpSock) delete tcpSock;
     if(sender)  delete sender;
-    delete FileWatcher::getInstance(Server::dirpath);//释放监视器
+    delete FileWatcher::getInstance();//释放监视器
 }
-
-
 
 
 //当有新的连接的时候响应这个函数
@@ -57,10 +44,12 @@ void Server::newConnectionSlot(qintptr ptr1)
     if(!tcpSock->setSocketDescriptor(ptr1)){//为这个套接字设置套接字描述符
         qDebug()<<"setSocketDescriptor failed!";
     }
+
+    qDebug()<<"New Connection!";
+
     sender->setSocket(tcpSock);//设置发送套接字
     sender->sendTaskCode();//发送任务代号
 }
-
 
 
 //退出程序

@@ -18,21 +18,19 @@
 #include"mytcpsever.h"
 
 
-
 class Server : QObject
 {  Q_OBJECT
 public:
-    explicit Server(const char *inputPort);
+    explicit Server(const std::string &_strPort);
     virtual ~Server();
 private:
     MyTcpSever *server;
     QTcpSocket *m_Socket;//连接套接字
     std::string path;
     qint64 ThreadNum;
-    qint32 m_iPort;
+    qint32 m_port;
     Sender *sender;//发送器
     QTcpSocket *tcpSock;//发送文件的套接字
-    std::queue<QString> queueSend;//文件队列
 public:
     static std::string dirpath;//声明
 private slots:

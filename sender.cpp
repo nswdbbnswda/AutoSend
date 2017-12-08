@@ -5,7 +5,7 @@
 #include"autosend.h"
 #include "filewatcher.h"
 #include "server.h"
-
+#include"Factoary.h"
 
 
 
@@ -20,24 +20,23 @@ Sender::Sender()
     cunrrentFinishByte = 0;
     FileLength = 0;
     breakFlag = false;
-    FileWatcher::getInstance(Server::dirpath)->GetFileList(QString::fromStdString(Server::dirpath),fileQueue);//获得文件列表
 
-    pRm = new PathRemake(QString::fromStdString(Server::dirpath));//创建一个路径控制器
+    pathQueue = Factoary::pathlist;
+
+    FileWatcher::getInstance()->GetFileList(pathQueue,nametoFullPath,fileQueue,fullPathtoName);//通过路径列表获得文件队列
+
 }
 
 Sender::~Sender()
 {
     m_Socket->close();
     if(m_Socket){ delete m_Socket; }
-    if(pRm){ delete pRm;}
 }
 
 
 //发送文件
 void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 {
-
-
     breakFlag = pos;
     qint64 i64FileNum =(qint64)curfileQueue.size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
@@ -59,7 +58,9 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 
         qDebug()<<fullpath;//显示当前传输的文件
 
-        path = pRm->GetFolerFilePath(fullpath).toStdString();// D:/DATA/1.txt  ->  DATA/1.txt  //
+        //此处需要发送给接收端整理好的文件名（文件夹就带路径名，文件就是只有文件名字）
+
+        path = fullPathtoName[fullpath].toStdString();//将文件队列中的全路径转换成发送格式
 
         finishByte = 0;
 
@@ -130,9 +131,6 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 
 
 
-
-
-
 //发送任务代号
 void Sender::sendTaskCode()
 {   
@@ -153,32 +151,14 @@ void Sender::setSocket(QTcpSocket *socket)
 
 
 
-
-//恢复文件路径名称  //输入一个常量引用返回一个QString
-QString Sender::restorFilepath(const QByteArray &outSidefileName)
-{
-    QByteArray fileName = outSidefileName;
-    fileName.remove(0,1);//删除第一个字节（盘符）
-    QString qstr = QString::fromStdString(Server::dirpath);//取路径首字母
-    QByteArray s = qstr.toLatin1();
-    fileName.insert(0,s[0]);//修改成与队列中一样的盘符
-    QString qStringFileName = fileName;
-    return qStringFileName;
-}
-
-
-
 //调整文件队列到断点前状态
 bool Sender::adjustedQueues(const QByteArray &fileName , std::queue<QString> &fileQue)
 {
-    QString qStringFileName = restorFilepath(fileName);
+    QString qStringFileName = fileName;
     while(fileQue.size()){
         if(qStringFileName != fileQue.front()){
             fileQue.pop();
-        }
-        else{
-            break;
-        }
+        }else{ break; }
     }
     return fileQue.size() > 0;
 }
@@ -207,18 +187,13 @@ unsigned long Sender::nameHash( std::queue<QString> fileNameQue)
 }
 
 
-
-
-
-
-
 //断线处理
 void Sender::LostConnection()
 {
     if( finishFlag) //发完了
         emit finishSend();//发个信号通知主程序退出
-    //掉线了
-    else{
+
+    else{//掉线了
         std::cout<<'\n'<<"Reconnecting......"<<std::endl;
         disconnect(m_Socket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//解开连接
         disconnect(m_Socket,SIGNAL(readyRead()),this,SLOT(acceptRequest()));//解开连接
@@ -250,16 +225,14 @@ void Sender::acceptRequest()
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
     QByteArray fileName = messageContext.left(indexPos);//获取文件名
     QByteArray filePos = messageContext.right(messageContext.length() - indexPos -1);//获取断点位置
-    //    qDebug()<<"file name is : "<<fileName;
-    //    qDebug()<<"file pos is "<<filePos;
+
     if(fileName.length() == 0 && filePos == "0"){
         std::queue<QString>fileQueCur = fileQueue;
         sendFile(fileQueCur);//发送全部文件
     }
     else{//断点任务
 
-        QString hardPath = pRm->TransToFullPath(QString(fileName));//把接收到的断点文件名字转换回硬盘路径
-
+        QString hardPath = nametoFullPath[QString(fileName)];//名字转换成路径
         fileName = hardPath.toUtf8();//转换回QByteArray类型的fileName
         std::queue<QString> sendQue = fileQueue;//获取一个完整文件队列
         if(adjustedQueues(fileName,sendQue)){//把队列待发送队列调整到断点前状态
