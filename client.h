@@ -41,7 +41,6 @@ private:
     QByteArray  logContext;//日志内容
     QByteArray  breakFileName;//断点文件的名字
     qint64      breakFileLength;//断点文件已经接收的长度
-   // PathRemake *pRm;
 
 protected:
     BreakPoint breakPoint;//断点

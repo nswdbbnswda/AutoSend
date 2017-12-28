@@ -20,9 +20,15 @@ Server::Server(const std::string &_strPort)
         if (server->listen(QHostAddress::Any,m_port)){
             std::cout<<"open listen port success!"<<std::endl;//提示监听成功
         }
-        else{ std::cout<<"open listen port fail!"<<std::endl;}//提示监听失败
+        else{
+            std::cout<<"open listen port fail!"<<std::endl;
+            exit(0);
+        }//提示监听失败
     }
-    else{std::cout<<"Function  isListening()  error!"<<std::endl; }
+    else{
+        std::cout<<"Function  isListening()  error!"<<std::endl;
+        exit(0);
+    }
     connect(server, SIGNAL(newClientConnection(qintptr)), this, SLOT(newConnectionSlot(qintptr)));//当有新的连接的时候，就会执行槽函数
     connect(sender,SIGNAL(finishSend()),this,SLOT(quitAutoSend()));//接收到了sender的发送完毕信号就退出程序.
 }
@@ -44,9 +50,6 @@ void Server::newConnectionSlot(qintptr ptr1)
     if(!tcpSock->setSocketDescriptor(ptr1)){//为这个套接字设置套接字描述符
         qDebug()<<"setSocketDescriptor failed!";
     }
-
-    qDebug()<<"New Connection!";
-
     sender->setSocket(tcpSock);//设置发送套接字
     sender->sendTaskCode();//发送任务代号
 }

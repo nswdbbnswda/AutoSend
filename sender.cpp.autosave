@@ -247,6 +247,8 @@ void Sender::acceptRequest()
     if(fileName.length() == 0 && filePos == "0"){
         std::queue<QString>fileQueCur = fileQueue;
         sendFile(fileQueCur);//发送全部文件
+        //
+        
     }
     else{//断点任务
 
@@ -258,7 +260,7 @@ void Sender::acceptRequest()
             qint64 qintPos = intPos.toInt();//转换成整型
 
             qDebug()<<"断点位置:"<<fileName<<intPos;
-            sendFile(sendQue,qintPos);//发送文件
+            sendFile(sendQue,qintPos);//发送文件   
         }
         else{//如果在队列中没有找到这个文件
             qDebug()<<"没有在发送队列中找到该断点文件!";
