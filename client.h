@@ -9,6 +9,7 @@
 #include<QTime>
 #include"autosend.h"
 #include"pathremake.h"
+#include<QTimer>
 
 
 class Client : QObject
@@ -41,7 +42,6 @@ private:
     QByteArray  logContext;//日志内容
     QByteArray  breakFileName;//断点文件的名字
     qint64      breakFileLength;//断点文件已经接收的长度
-
 protected:
     BreakPoint breakPoint;//断点
 private:

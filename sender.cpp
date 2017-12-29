@@ -142,9 +142,10 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
     }
 
     delete FileNum;
-    qDebug()<<" Send OK";
+    qDebug()<<"发送完成!";
     finishFlag = true;
-    m_Socket->disconnectFromHost();//当所有的数据从发送端主机发送到网络上以后，会主动触发一个disconnected信号
+
+    //m_Socket->disconnectFromHost();//当所有的数据从发送端主机发送到网络上以后，会主动触发一个disconnected信号
 }
 
 
@@ -209,14 +210,14 @@ unsigned long Sender::nameHash( std::queue<QString> fileNameQue)
 //断线处理
 void Sender::LostConnection()
 {
-    if( finishFlag) //发完了
-        emit finishSend();//发个信号通知主程序退出
+  //  if( finishFlag) //发完了
+     //   emit finishSend();//发个信号通知主程序退出
 
-    else{//掉线了
+   // else{//掉线了
         std::cout<<'\n'<<"Reconnecting......"<<std::endl;
         disconnect(m_Socket,SIGNAL(disconnected()),this,SLOT(LostConnection()));//解开连接
         disconnect(m_Socket,SIGNAL(readyRead()),this,SLOT(acceptRequest()));//解开连接
-    }
+  //  }
 }
 
 
@@ -238,15 +239,22 @@ void Sender::showSpeed()
 //接收请求并处理
 void Sender::acceptRequest()
 {
-    QByteArray  messageContext = m_Socket->readAll();//接收数据
+    QByteArray  messageContext;
+    messageContext = m_Socket->read(1);//先读一个字符如果是":"说明是退出指令
+    if(":" == messageContext){ emit finishSend();}
+    else messageContext.append(m_Socket->readAll());
 
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
+    if( -1 == indexPos) return;
+
     QByteArray fileName = messageContext.left(indexPos);//获取文件名
     QByteArray filePos = messageContext.right(messageContext.length() - indexPos -1);//获取断点位置
 
     if(fileName.length() == 0 && filePos == "0"){
         std::queue<QString>fileQueCur = fileQueue;
         sendFile(fileQueCur);//发送全部文件
+        //
+
     }
     else{//断点任务
 
@@ -258,7 +266,7 @@ void Sender::acceptRequest()
             qint64 qintPos = intPos.toInt();//转换成整型
 
             qDebug()<<"断点位置:"<<fileName<<intPos;
-            sendFile(sendQue,qintPos);//发送文件
+            sendFile(sendQue,qintPos);//发送文件   
         }
         else{//如果在队列中没有找到这个文件
             qDebug()<<"没有在发送队列中找到该断点文件!";

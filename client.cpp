@@ -3,6 +3,7 @@
 #include<QDebug>
 #include <QCoreApplication>
 #include"autosend.h"
+#include<QThread>
 
 
 //启动客户端后就开始连接服务端
@@ -56,8 +57,9 @@ void Client::receiveData()
     //等待发送端把文件的个数发送的过来
     QByteArray  fileNum;
     qint64  totalFileNum = 0;
-    while(m_pSocket->bytesAvailable()<8){//等待至少有8个字节数据到来
+    while(m_pSocket->bytesAvailable() < 8){//等待至少有8个字节数据到来
         if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+            qDebug()<<"waitForReadyRead 63";
             lostConnection();
         }
 
@@ -65,7 +67,7 @@ void Client::receiveData()
     fileNum = m_pSocket->read(8);//把这8个字节读到字节数组里
     receiveFileNum = fileNum.data();//转换成char *类型
     memcpy(&totalFileNum,receiveFileNum,8);//拷贝到totalFileNum变量中
-     qDebug()<<"File number:"<<totalFileNum;//显示文件个数
+    qDebug()<<"File number:"<<totalFileNum;//显示文件个数
 
     //循环接收每一个文件
     while(totalFileNum){
@@ -73,8 +75,8 @@ void Client::receiveData()
         finishByte = 0;
 
         while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
-            m_pSocket->waitForReadyRead();
             if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+                qDebug()<<"waitForReadyRead 81";
                 lostConnection();
             }
         }
@@ -82,9 +84,9 @@ void Client::receiveData()
         receiveName = vTemp.data();//转换成char*类型
         memcpy(&nameLength,receiveName,4);//nameLength储存的是文件名字所占的字节数量
         while(m_pSocket->bytesAvailable() < nameLength){//如果当前缓冲区字节数不足nameLength，就缓冲到足为止
-            m_pSocket->waitForReadyRead();
             if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-               lostConnection();//主动请求重新连接
+                qDebug()<<"waitForReadyRead 91";
+                lostConnection();//主动请求重新连接
             }
         }
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
@@ -94,7 +96,7 @@ void Client::receiveData()
 
         qDebug()<<fullPath;//显示改好的路径
 
-         //搞定路径
+        //搞定路径
         makePath(fullPath);//搞定路径问题,如果没有则创建
         vTemp = fullPath.toUtf8();
 
@@ -102,20 +104,20 @@ void Client::receiveData()
         QFile file(vTemp.data());
 
         if(breakFileName == vTemp && taskType == TaskType::BREAKTASK  ){//对断点任务的第一个文件进行追加处理
-           file.open(QIODevice::ReadWrite|QIODevice::Append);//以追加的方式打开要写入的文件
+            file.open(QIODevice::ReadWrite|QIODevice::Append);//以追加的方式打开要写入的文件
         }else{//新任务
-           file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
+            file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
         }
 
         vTemp.append(fileNameSeparator);//在文件名末尾添加一个分隔符
         logFile->write(vTemp); //写入日志文件
         logFile->flush();//刷新一下内容
-       // logFile->write("\r\n");//日志格式
+        // logFile->write("\r\n");//日志格式
         //读12个字节的文件头信息
         while(m_pSocket->bytesAvailable() < 12){
-            m_pSocket->waitForReadyRead();
             if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-               lostConnection();
+                qDebug()<<"waitForReadyRead 123";
+                lostConnection();
             }
         }
         vTemp = m_pSocket->read(12);//读12字节
@@ -129,15 +131,16 @@ void Client::receiveData()
         if(TotalNum>1){//如果存在整包
             while(TotalNum-1){//运行的次数
                 while(m_pSocket->bytesAvailable() < IPMSG_DEFAULT_IOBUFMAX){//缓冲IPMSG_DEFAULT_IOBUFMAX个字节数
-                    m_pSocket->waitForReadyRead();
+
                     if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+                        qDebug()<<"waitForReadyRead 140";
                         lostConnection();
                     }
                 }
                 vTemp = m_pSocket->read(IPMSG_DEFAULT_IOBUFMAX); //读取IPMSG_DEFAULT_IOBUFMAX个字节
                 while(m_pSocket->bytesAvailable() < 12){
-                    m_pSocket->waitForReadyRead();
                     if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+                        qDebug()<<"waitForReadyRead 147";
                         lostConnection();
                     }
                 }
@@ -149,8 +152,8 @@ void Client::receiveData()
                 //存在一个BUG 尚未进行对12字节处理
             }
             while(m_pSocket->bytesAvailable() < LastBlock){ //对最后一个包进行缓冲
-                m_pSocket->waitForReadyRead();
                 if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+                    qDebug()<<"waitForReadyRead 160";
                     lostConnection();
                 }
             }
@@ -161,8 +164,9 @@ void Client::receiveData()
         //数据不足IPMSG_DEFAULT_IOBUFMAX个字节
         else{
             while(m_pSocket->bytesAvailable() < LastBlock){//把数据缓冲下来
-                m_pSocket->waitForReadyRead();
+
                 if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
+                    qDebug()<<"waitForReadyRead 173";
                     lostConnection();
                 }
             }
@@ -173,8 +177,11 @@ void Client::receiveData()
         file.close();//完成一个文件的读写
         totalFileNum--;
     }
-    qDebug()<<"Receive OK";
+    qDebug()<<"接收完成!";
     finishFlag = true;
+    //循环发送":"符号，直到发送失败为止
+
+    while(true){ if(-1 == m_pSocket->write(":")|| !m_pSocket->waitForBytesWritten()) break;}//发送退出信号
     m_pSocket->close();
 }
 
@@ -186,6 +193,7 @@ void Client::lostConnection()
         //logFile->resize(fileStartPos);//清楚本次所有文件的传输记录
         logFile->close();//关闭日志文件
         logFile->remove();//删除日志文件
+
         exit(0);//发送完毕，退出程序
     }
     else{
@@ -344,6 +352,8 @@ bool  Client::sendIndexPos(const QString & name,qint64 pos)
     m_pSocket->waitForBytesWritten();
     return true;
 }
+
+
 
 
 
