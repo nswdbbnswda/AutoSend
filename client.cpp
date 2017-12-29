@@ -47,7 +47,7 @@ Client::~Client()
 {
     if(m_pSocket) {delete m_pSocket; m_pSocket = NULL; }
     if(logFile){delete logFile; logFile = NULL; }
-    //if(pRm) delete pRm;
+
 }
 
 
@@ -58,11 +58,7 @@ void Client::receiveData()
     QByteArray  fileNum;
     qint64  totalFileNum = 0;
     while(m_pSocket->bytesAvailable() < 8){//等待至少有8个字节数据到来
-        if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-            qDebug()<<"waitForReadyRead 63";
-            lostConnection();
-        }
-
+       m_pSocket->waitForReadyRead();
     }
     fileNum = m_pSocket->read(8);//把这8个字节读到字节数组里
     receiveFileNum = fileNum.data();//转换成char *类型
@@ -75,19 +71,13 @@ void Client::receiveData()
         finishByte = 0;
 
         while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
-            if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                qDebug()<<"waitForReadyRead 81";
-                lostConnection();
-            }
+            m_pSocket->waitForReadyRead();
         }
         vTemp = m_pSocket->read(4);//读4个字节，储存的是文件名字的字节数量
         receiveName = vTemp.data();//转换成char*类型
         memcpy(&nameLength,receiveName,4);//nameLength储存的是文件名字所占的字节数量
         while(m_pSocket->bytesAvailable() < nameLength){//如果当前缓冲区字节数不足nameLength，就缓冲到足为止
-            if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                qDebug()<<"waitForReadyRead 91";
-                lostConnection();//主动请求重新连接
-            }
+            m_pSocket->waitForReadyRead();
         }
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
 
@@ -115,10 +105,7 @@ void Client::receiveData()
         // logFile->write("\r\n");//日志格式
         //读12个字节的文件头信息
         while(m_pSocket->bytesAvailable() < 12){
-            if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                qDebug()<<"waitForReadyRead 123";
-                lostConnection();
-            }
+            m_pSocket->waitForReadyRead();
         }
         vTemp = m_pSocket->read(12);//读12字节
         ReceiveHead = vTemp.data();//类型转换QByteArray到char *
@@ -131,18 +118,11 @@ void Client::receiveData()
         if(TotalNum>1){//如果存在整包
             while(TotalNum-1){//运行的次数
                 while(m_pSocket->bytesAvailable() < IPMSG_DEFAULT_IOBUFMAX){//缓冲IPMSG_DEFAULT_IOBUFMAX个字节数
-
-                    if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                        qDebug()<<"waitForReadyRead 140";
-                        lostConnection();
-                    }
+                    m_pSocket->waitForReadyRead();
                 }
                 vTemp = m_pSocket->read(IPMSG_DEFAULT_IOBUFMAX); //读取IPMSG_DEFAULT_IOBUFMAX个字节
                 while(m_pSocket->bytesAvailable() < 12){
-                    if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                        qDebug()<<"waitForReadyRead 147";
-                        lostConnection();
-                    }
+                    m_pSocket->waitForReadyRead();
                 }
                 xTemp = m_pSocket->read(12);
                 xTemp.clear();
@@ -152,10 +132,7 @@ void Client::receiveData()
                 //存在一个BUG 尚未进行对12字节处理
             }
             while(m_pSocket->bytesAvailable() < LastBlock){ //对最后一个包进行缓冲
-                if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                    qDebug()<<"waitForReadyRead 160";
-                    lostConnection();
-                }
+                m_pSocket->waitForReadyRead();
             }
             vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
             finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
@@ -164,11 +141,7 @@ void Client::receiveData()
         //数据不足IPMSG_DEFAULT_IOBUFMAX个字节
         else{
             while(m_pSocket->bytesAvailable() < LastBlock){//把数据缓冲下来
-
-                if(!m_pSocket->waitForReadyRead()){//如果等待30秒都没有反应那么就认为网络已经断开了
-                    qDebug()<<"waitForReadyRead 173";
-                    lostConnection();
-                }
+                m_pSocket->waitForReadyRead();
             }
             vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
             finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
