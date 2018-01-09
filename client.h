@@ -10,6 +10,10 @@
 #include"autosend.h"
 #include"pathremake.h"
 #include<QTimer>
+#include<QNetworkConfigurationManager>
+#include<QVariant>
+#include<QThread>
+#include"heartbeat.h"
 
 
 class Client : QObject
@@ -42,6 +46,9 @@ private:
     QByteArray  logContext;//日志内容
     QByteArray  breakFileName;//断点文件的名字
     qint64      breakFileLength;//断点文件已经接收的长度
+    QTimer      heartbeatTimer;//心跳时钟
+    QThread     heartBeatThread;//心跳线程
+    HeartBeat   heart;
 protected:
     BreakPoint breakPoint;//断点
 private:
@@ -55,10 +62,13 @@ public slots:
     void showSpeed();//显示传输进度
     void responseTask();//响应任务
     bool sendIndexPos(const QString & name = "",qint64 pos = 0);//向服务端请求从索引处发送文件
+    bool heartBeat();//发送心跳消息
 signals:
     void dataComing();//数据来了
     void refresh();
     void taskCodeComing();//任务代号来了
+    void startHeart(int desc);
+    void startTimerSub();//启动子线程定时器
 
 };
 

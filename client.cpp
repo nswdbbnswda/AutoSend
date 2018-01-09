@@ -3,7 +3,8 @@
 #include<QDebug>
 #include <QCoreApplication>
 #include"autosend.h"
-#include<QThread>
+
+
 
 
 //启动客户端后就开始连接服务端
@@ -28,10 +29,24 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
     fileStartPos = 0;
     fileNameSeparator = '|';
     finishFlag = false;
+
+
     taskType = TaskType::BREAKTASK;//默认为新任务
     port = atoi(inputPort.c_str());//把端口号从string 类型转换成 整型
     m_pSocket = new QTcpSocket();//创建客户端套接字
     m_pSocket->setReadBufferSize(IPMSG_DEFAULT_QTINERBUFFER);//设置QT内部缓冲区大小为10M
+
+    //启动心跳机制线程
+    //connect(this,SIGNAL(startHeart(int)),&heart,SLOT(Burn(int)));
+   // connect(this,SIGNAL(startTimerSub()),&heart,SLOT(startTimer()));
+    //heart.moveToThread(&heartBeatThread);
+   // heartBeatThread.start();
+
+    //emit  startHeart(m_pSocket->socketDescriptor());//把套接字句柄传给子线程
+
+
+
+
     connectToServer();//连接服务器
     connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
     connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(lostConnection()));//断开连接了做异常处理
@@ -39,6 +54,8 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
     connect(this, SIGNAL(dataComing()),this, SLOT(receiveData()));
     //emit dataComing();//发送信号，文件来了
     connect(this,SIGNAL(taskCodeComing()),this,SLOT(responseTask()));
+
+
     emit taskCodeComing();//接收任务代号
 }
 
@@ -58,7 +75,9 @@ void Client::receiveData()
     QByteArray  fileNum;
     qint64  totalFileNum = 0;
     while(m_pSocket->bytesAvailable() < 8){//等待至少有8个字节数据到来
-       m_pSocket->waitForReadyRead();
+
+       if(!m_pSocket->waitForReadyRead())
+           if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
     }
     fileNum = m_pSocket->read(8);//把这8个字节读到字节数组里
     receiveFileNum = fileNum.data();//转换成char *类型
@@ -71,13 +90,18 @@ void Client::receiveData()
         finishByte = 0;
 
         while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
-            m_pSocket->waitForReadyRead();
+
+            if(!m_pSocket->waitForReadyRead())
+                if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
         }
         vTemp = m_pSocket->read(4);//读4个字节，储存的是文件名字的字节数量
         receiveName = vTemp.data();//转换成char*类型
         memcpy(&nameLength,receiveName,4);//nameLength储存的是文件名字所占的字节数量
+
         while(m_pSocket->bytesAvailable() < nameLength){//如果当前缓冲区字节数不足nameLength，就缓冲到足为止
-            m_pSocket->waitForReadyRead();
+
+            if(!m_pSocket->waitForReadyRead())
+                if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
         }
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
 
@@ -105,7 +129,10 @@ void Client::receiveData()
         // logFile->write("\r\n");//日志格式
         //读12个字节的文件头信息
         while(m_pSocket->bytesAvailable() < 12){
-            m_pSocket->waitForReadyRead();
+
+            if(!m_pSocket->waitForReadyRead())
+                if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
+
         }
         vTemp = m_pSocket->read(12);//读12字节
         ReceiveHead = vTemp.data();//类型转换QByteArray到char *
@@ -118,11 +145,15 @@ void Client::receiveData()
         if(TotalNum>1){//如果存在整包
             while(TotalNum-1){//运行的次数
                 while(m_pSocket->bytesAvailable() < IPMSG_DEFAULT_IOBUFMAX){//缓冲IPMSG_DEFAULT_IOBUFMAX个字节数
-                    m_pSocket->waitForReadyRead();
+
+                    if(!m_pSocket->waitForReadyRead())
+                        if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
                 }
                 vTemp = m_pSocket->read(IPMSG_DEFAULT_IOBUFMAX); //读取IPMSG_DEFAULT_IOBUFMAX个字节
                 while(m_pSocket->bytesAvailable() < 12){
-                    m_pSocket->waitForReadyRead();
+
+                    if(!m_pSocket->waitForReadyRead())
+                        if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
                 }
                 xTemp = m_pSocket->read(12);
                 xTemp.clear();
@@ -132,7 +163,8 @@ void Client::receiveData()
                 //存在一个BUG 尚未进行对12字节处理
             }
             while(m_pSocket->bytesAvailable() < LastBlock){ //对最后一个包进行缓冲
-                m_pSocket->waitForReadyRead();
+                if(!m_pSocket->waitForReadyRead())
+                    if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
             }
             vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
             finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
@@ -141,7 +173,9 @@ void Client::receiveData()
         //数据不足IPMSG_DEFAULT_IOBUFMAX个字节
         else{
             while(m_pSocket->bytesAvailable() < LastBlock){//把数据缓冲下来
-                m_pSocket->waitForReadyRead();
+
+                if(!m_pSocket->waitForReadyRead())
+                    if(!heartBeat()) return;//如果超时了就发一次探测断线机制，如果探测失败就直接认为断线了，关闭套接字
             }
             vTemp = m_pSocket->read(LastBlock);//读取读最后一块数据
             finishByte += file.write(vTemp);//写入数据,直到写完才进行下一步
@@ -223,6 +257,7 @@ void Client::connectToServer()
         m_pSocket->connectToHost(QHostAddress(ipAddr.c_str()),port);//发起连接
         if(m_pSocket->waitForConnected()) break;//如果连上了服务器，函数返回
     }
+  //  emit startTimerSub();//建立连接后启动心跳计时器
 }
 
 
@@ -325,6 +360,37 @@ bool  Client::sendIndexPos(const QString & name,qint64 pos)
     m_pSocket->waitForBytesWritten();
     return true;
 }
+
+
+
+bool Client::heartBeat()
+{
+   if(-1 == m_pSocket->write("?")){
+       m_pSocket->disconnectFromHost();//认为连接已经断开了
+
+       return false;
+  }
+
+   return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

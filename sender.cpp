@@ -117,8 +117,8 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 
         }
         memcpy(SendBuffer, &TotalNum, 4);//最后一块次序数
-        memcpy(&SendBuffer[4], &TotalNum, 4);//总包数
         memcpy(&SendBuffer[8], &LastBlock, 4);
+        memcpy(&SendBuffer[4], &TotalNum, 4);//总包数
         file.read(&SendBuffer[12],LastBlock);
         //finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,LastBlock + 12);//发送数据
         if(-1 != (cunrrentFinishByte = m_Socket->write(SendBuffer,LastBlock + 12))){
@@ -242,6 +242,9 @@ void Sender::acceptRequest()
     QByteArray  messageContext;
     messageContext = m_Socket->read(1);//先读一个字符如果是":"说明是退出指令
     if(":" == messageContext){ emit finishSend();}
+    else if("?" == messageContext){//这是客户端的心跳
+        return;//接收就好，不做任何处理
+    }
     else messageContext.append(m_Socket->readAll());
 
     int indexPos = messageContext.indexOf('|');//找到第一个出现'|'的索引位置
@@ -274,4 +277,7 @@ void Sender::acceptRequest()
         }
     }
 }
+
+
+
 

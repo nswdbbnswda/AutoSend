@@ -17,7 +17,8 @@ SOURCES += main.cpp \
     mytcpsever.cpp \
     md5key.cpp \
     pathremake.cpp \
-    factoary.cpp
+    factoary.cpp \
+    heartbeat.cpp
 
 HEADERS += \
     server.h \
@@ -28,4 +29,5 @@ HEADERS += \
     autosend.h \
     md5key.h \
     pathremake.h \
-    Factoary.h
+    Factoary.h \
+    heartbeat.h
