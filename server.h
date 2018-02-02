@@ -16,6 +16,7 @@
 #include"filewatcher.h"
 #include"sender.h"
 #include"mytcpsever.h"
+#include<QSharedMemory>
 
 
 class Server : QObject
@@ -31,6 +32,9 @@ private:
     qint32 m_port;
     Sender *sender;//发送器
     QTcpSocket *tcpSock;//发送文件的套接字
+    QSharedMemory *sharememory;
+private:
+    void WriteDataToMem(char c);//向共享内存中写数据
 public:
     static std::string dirpath;//声明
 private slots:

@@ -105,6 +105,7 @@ void Client::receiveData()
         }
         vTemp = m_pSocket->read(nameLength);//读文件名字  读NameLength个字节
 
+
         QString qstrRevPath(vTemp);//接收文件夹文件名  例如传输的文件夹为 DATA 那么 接收结果为 DATA/1.txt
         QString fullPath = QString::fromStdString(savePath) + "/" + qstrRevPath;
 
@@ -118,9 +119,17 @@ void Client::receiveData()
         QFile file(vTemp.data());
 
         if(breakFileName == vTemp && taskType == TaskType::BREAKTASK  ){//对断点任务的第一个文件进行追加处理
-            file.open(QIODevice::ReadWrite|QIODevice::Append);//以追加的方式打开要写入的文件
+            if(!file.open(QIODevice::ReadWrite|QIODevice::Append)){//以追加的方式打开要写入的文件
+
+                qDebug()<<"BREAKTASK"<<file.errorString()<<vTemp.data()<<"改好的全路径"<<fullPath;
+                while(1);
+            }
+
         }else{//新任务
-            file.open(QIODevice::ReadWrite|QIODevice::Truncate);//删除文件内容再进行写入
+            if(!file.open(QIODevice::ReadWrite|QIODevice::Truncate)) {//删除文件内容再进行写入
+                qDebug()<<"NEWTASK"<<file.errorString()<<vTemp.data()<<"改好的全路径"<<fullPath;
+                while(1);
+            }
         }
 
         vTemp.append(fileNameSeparator);//在文件名末尾添加一个分隔符

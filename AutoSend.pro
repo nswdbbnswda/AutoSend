@@ -3,6 +3,7 @@ QT -= gui
 QT += network
 CONFIG += c++11
 
+
 TARGET = AutoSend
 CONFIG += console
 CONFIG -= app_bundle
@@ -31,3 +32,5 @@ HEADERS += \
     pathremake.h \
     Factoary.h \
     heartbeat.h
+
+
