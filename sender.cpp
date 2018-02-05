@@ -37,6 +37,8 @@ Sender::~Sender()
 //发送文件
 void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 {
+
+
     breakFlag = pos;
     qint64 i64FileNum =(qint64)curfileQueue.size();//显示队列中有几个文件
     //qDebug()<<i64FileNum;
@@ -47,10 +49,10 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
         qDebug()<<"发送数据失败m_Socket->write() line 46";
         return;
     }
-
+    time.start();//开始计时
     while(curfileQueue.size())//有几个文件就执行几次
     {
-        time.restart();
+
         //路径获取
         QString fullpath =  curfileQueue.front();//文件队列中第一个文件的全路径
         std::string path =  fullpath.toStdString();//把全路径从QString格式转换成string
@@ -58,11 +60,10 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 
         if(!file.open(QFile::ReadOnly)){qDebug()<<"打开文件"<<fullpath<<"失败";}
 
-        qDebug()<<fullpath;//显示当前传输的文件
+        //qDebug()<<fullpath;//显示当前传输的文件
 
         //此处需要发送给接收端整理好的文件名（文件夹就带路径名，文件就是只有文件名字）
         path = fullPathtoName[fullpath].toStdString();//将文件队列中的全路径转换成发送格式
-        finishByte = 0;
 
         FileLength  = file.size();//获取文件长度
         if(breakFlag){//断点续传任务
@@ -103,7 +104,8 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 
             // finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,IPMSG_DEFAULT_IOBUFMAX + 12);//发送
             if(-1 != (cunrrentFinishByte = m_Socket->write(SendBuffer,IPMSG_DEFAULT_IOBUFMAX + 12))){//发送
-                finishByte += cunrrentFinishByte;
+
+                finishByte += (cunrrentFinishByte - 12);
             }
             else{
                 qDebug()<<"m_Socket->write(SendBuffer,IPMSG_DEFAULT_IOBUFMAX + 12) line 107";
@@ -122,7 +124,7 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
         file.read(&SendBuffer[12],LastBlock);
         //finishByte += cunrrentFinishByte = m_Socket->write(SendBuffer,LastBlock + 12);//发送数据
         if(-1 != (cunrrentFinishByte = m_Socket->write(SendBuffer,LastBlock + 12))){
-            finishByte += cunrrentFinishByte;
+            finishByte += (cunrrentFinishByte - 12);
         }
         else{
             qDebug()<<"m_Socket->write(SendBuffer,LastBlock + 12) line 125";
@@ -142,7 +144,7 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
     }
 
     delete FileNum;
-    qDebug()<<"发送完成!";
+    //qDebug()<<"发送完成!";
     finishFlag = true;
 
     //m_Socket->disconnectFromHost();//当所有的数据从发送端主机发送到网络上以后，会主动触发一个disconnected信号
@@ -154,7 +156,11 @@ void Sender::sendFile(std::queue<QString> &curfileQueue ,qint64 pos)
 //发送任务代号
 void Sender::sendTaskCode()
 {   
-    QString s = QString::number(nameHash(fileQueue),10);
+    QString s = QString::number(nameHash(fileQueue),10);//获得由所有名字计算求得的hash值
+    //把总文件大小也作为任务代号的一部分
+    s += "+";
+    s += QString::number(FileWatcher::getInstance()->GetTotalFileSize(),10);
+
     QByteArray data = s.toLatin1();//QString 类型转换成 QByteArray类型
     m_Socket->write(data);
     m_Socket->waitForBytesWritten();
@@ -226,12 +232,12 @@ void Sender::showSpeed()
 {
     //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
     printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
-           (double)finishByte/1048576,
+           (double)finishByte / 1048576,
            "/",
-           (double)FileLength/1048576,"MB ",
-           ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
+           (double)FileWatcher::getInstance()->GetTotalFileSize() / 1048576,"MB ",
+           ((double)finishByte / 1048576)/((double)time.elapsed()/1000),//平均速度
            "MB/S (",
-           100 * (double)finishByte / FileLength ,
+           100 * (double)finishByte / FileWatcher::getInstance()->GetTotalFileSize() ,
            ")");
 }
 

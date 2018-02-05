@@ -49,6 +49,7 @@ private:
     QTimer      heartbeatTimer;//心跳时钟
     QThread     heartBeatThread;//心跳线程
     HeartBeat   heart;
+    qint64      ToalFileSize;//要接收的文件总大小
 protected:
     BreakPoint breakPoint;//断点
 private:

@@ -34,7 +34,7 @@ private:
     QTcpSocket *tcpSock;//发送文件的套接字
     QSharedMemory *sharememory;
 private:
-    void WriteDataToMem(char c);//向共享内存中写数据
+    bool WriteDataToMem(char c);//向共享内存中写数据
 public:
     static std::string dirpath;//声明
 private slots:

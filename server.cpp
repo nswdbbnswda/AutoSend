@@ -26,7 +26,8 @@ Server::Server(const std::string &_strPort)
 
     if (!server->isListening()){//监听
         if (server->listen(QHostAddress::Any,m_port)){
-            std::cout<<"open listen port success!"<<std::endl;//提示监听成功
+           // std::cout<<"open listen port success!"<<std::endl;//提示监听成功
+
             WriteDataToMem('1');
 
         }
@@ -56,11 +57,12 @@ Server::~Server()
 }
 
 //向共享内存中写数据
-void Server::WriteDataToMem(char c)
+bool Server::WriteDataToMem(char c)
 {
     //取得共享内存权限
     sharememory->lock();
     sharememory->attach();//使该进程可以访问共享内存数据
+    if(!sharememory->isAttached()) return false;//如果没有关联上共享内存就直接返回false
     //读取数据
     *((char*)sharememory->data()) = c;
     sharememory->unlock();

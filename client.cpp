@@ -29,6 +29,7 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
     fileStartPos = 0;
     fileNameSeparator = '|';
     finishFlag = false;
+    ToalFileSize = 0;
 
 
     taskType = TaskType::BREAKTASK;//默认为新任务
@@ -38,13 +39,10 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
 
     //启动心跳机制线程
     //connect(this,SIGNAL(startHeart(int)),&heart,SLOT(Burn(int)));
-   // connect(this,SIGNAL(startTimerSub()),&heart,SLOT(startTimer()));
+    // connect(this,SIGNAL(startTimerSub()),&heart,SLOT(startTimer()));
     //heart.moveToThread(&heartBeatThread);
-   // heartBeatThread.start();
-
+    // heartBeatThread.start();
     //emit  startHeart(m_pSocket->socketDescriptor());//把套接字句柄传给子线程
-
-
 
 
     connectToServer();//连接服务器
@@ -85,9 +83,10 @@ void Client::receiveData()
     qDebug()<<"File number:"<<totalFileNum;//显示文件个数
 
     //循环接收每一个文件
+    time.start();
     while(totalFileNum){
-        time.restart();
-        finishByte = 0;
+
+
 
         while(m_pSocket->bytesAvailable()<4){//保证至少先读到储存文件名长度的变量
 
@@ -109,7 +108,7 @@ void Client::receiveData()
         QString qstrRevPath(vTemp);//接收文件夹文件名  例如传输的文件夹为 DATA 那么 接收结果为 DATA/1.txt
         QString fullPath = QString::fromStdString(savePath) + "/" + qstrRevPath;
 
-        qDebug()<<fullPath;//显示改好的路径
+        //qDebug()<<fullPath;//显示改好的路径
 
         //搞定路径
         makePath(fullPath);//搞定路径问题,如果没有则创建
@@ -193,7 +192,7 @@ void Client::receiveData()
         file.close();//完成一个文件的读写
         totalFileNum--;
     }
-    qDebug()<<"接收完成!";
+    //qDebug()<<"接收完成!";
     finishFlag = true;
     //循环发送":"符号，直到发送失败为止
 
@@ -230,11 +229,11 @@ void Client::showSpeed()
     printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
            (double)finishByte/1048576,
            "/",
-           (double)FileLength/1048576,"MB ",
+           (double)ToalFileSize/1048576,"MB ",
            ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
            "MB/S (",
-           100 * (double)finishByte / FileLength ,
-           ")");
+           100 * (double)finishByte / ToalFileSize ,
+           ")");   
 }
 
 
@@ -297,7 +296,15 @@ void Client::responseTask()
     }
     m_pSocket->waitForReadyRead();//阻塞等待至少有一个字节可读
     taskCode = m_pSocket->readAll();//接收任务编号
+
+
+
     QString taskCodeFile = taskCode;
+
+    //解析出文件大小
+    ToalFileSize = taskCodeFile.right(taskCodeFile.length() - taskCodeFile.indexOf("+")).toULongLong();
+
+
     //应用程序的recore目录下查找一下有没有这个文件
     logFile = new QFile(QCoreApplication::applicationDirPath()+ "/record" + "/" + taskCodeFile);//以本次任务编号为名字创建日志文件
 

@@ -4,7 +4,7 @@
 
 FileWatcher::FileWatcher()
 {
-
+    TotalFileSize = 0;
 }
 
 FileWatcher::~FileWatcher()
@@ -46,13 +46,19 @@ void FileWatcher::GetFileList(const std::queue<QString> &_pathList, std::map<QSt
         if(!fileInfo.exists()){ qDebug()<<"路径不合法SegmentPath()"; return;}
 
 
+
         //判断路径类型
         if(fileInfo.isFile()){//是一个文件
+
+            //累加文件大小
+            TotalFileSize += fileInfo.size();
+
             saveQueue.push(path);//把文件全路径加入到文件队列
             saveMap[fileInfo.fileName()] = path; //把文件名字和全路径加入到字典中
             fileNameMap[path] = fileInfo.fileName();
         }else if(fileInfo.isDir()){//是一个文件夹
 
+            //fileInfo.size();
 
             if(!IsDirExist(path)) return;//判断目录是否存在
             QStringList filters; //获取所选文件类型过滤器
@@ -61,6 +67,10 @@ void FileWatcher::GetFileList(const std::queue<QString> &_pathList, std::map<QSt
             while(dir_iterator.hasNext())//遍历目录
             {
                 QString temp = dir_iterator.next();
+                //将文件夹内的文件大小进行累加
+                QFileInfo dirFileInfo(temp);
+                TotalFileSize += dirFileInfo.size();
+
                 saveQueue.push(temp);//把遍历出来的文件都存储到队列中
                 saveMap[GetSendFilePath(temp,path)] = temp;//文件夹中的每一个文件都在字典中
                 fileNameMap[temp] = GetSendFilePath(temp,path);
@@ -75,7 +85,11 @@ void FileWatcher::GetFileList(const std::queue<QString> &_pathList, std::map<QSt
 
 
 
-
+//获得文件总尺寸大小
+qint64 FileWatcher::GetTotalFileSize()
+{
+    return TotalFileSize;
+}
 
 
 

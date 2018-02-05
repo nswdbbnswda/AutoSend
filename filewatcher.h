@@ -19,11 +19,14 @@ public:
             m_pInstance = new  FileWatcher();
         }           return m_pInstance;
     }
+    qint64 GetTotalFileSize();
     void GetFileList(const QString &path,std::queue<QString> &saveQueue);
     void GetFileList(const std::queue<QString> & _pathList,std::map<QString,QString> &saveMap,std::queue<QString> &saveQueue,std::map<QString,QString> &fileNameMap);
     virtual  ~FileWatcher();
 private:
     FileWatcher();
+private:
+    qint64 TotalFileSize;//所有文件总大小
 
 };
 
