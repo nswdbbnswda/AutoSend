@@ -11,7 +11,7 @@
 
 
 //传输发送套接字和队列的指针才能进行启动sender
-Sender::Sender()
+Sender::Sender(int _port)
 {
     m_Socket = NULL;
     connect(this,SIGNAL(refresh(qint64)),this,SLOT(showSpeed()));//连接显示传输进度的信号与槽
@@ -21,9 +21,18 @@ Sender::Sender()
     FileLength = 0;
     breakFlag = false;
 
-    pathQueue = Factoary::pathlist;
+    //设置共享内存
+    memId = QString::number(_port,10);//设置共享内存编号
+    printMem = new QSharedMemory;//实例化共享内存对象
+    printMem->setKey(memId);//设置共享内存的ID
+    printMem->detach();//将共享内存与本进程分离
+    printMem->create(1024);//1KB//创建共享内存
+    shareBuffer = (char*)printMem->data();//获得共享内存指针
 
+    pathQueue = Factoary::pathlist;
     FileWatcher::getInstance()->GetFileList(pathQueue,nametoFullPath,fileQueue,fullPathtoName);//通过路径列表获得文件队列
+
+
 
 }
 
@@ -31,6 +40,7 @@ Sender::~Sender()
 {
     m_Socket->close();
     if(m_Socket){ delete m_Socket; }
+    if(printMem) delete printMem;
 }
 
 
@@ -177,6 +187,8 @@ void Sender::setSocket(QTcpSocket *socket)
 
 
 
+
+
 //调整文件队列到断点前状态
 bool Sender::adjustedQueues(const QByteArray &fileName , std::queue<QString> &fileQue)
 {
@@ -227,11 +239,11 @@ void Sender::LostConnection()
 }
 
 
-//显示进度速度等信息
+//显示进度速度等信息以及向共享内存中写进度信息给其他进程
 void Sender::showSpeed()
 {
-    //326.0 /1571.0MB  16.4MB/S (37%) //输出格式
-    printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",
+    //打印进度信息到控制台
+    printf("%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\r",//326.0 /1571.0MB  16.4MB/S (37%) //输出格式
            (double)finishByte / 1048576,
            "/",
            (double)FileWatcher::getInstance()->GetTotalFileSize() / 1048576,"MB ",
@@ -239,6 +251,15 @@ void Sender::showSpeed()
            "MB/S (",
            100 * (double)finishByte / FileWatcher::getInstance()->GetTotalFileSize() ,
            ")");
+    //把进度信息写进共享内存
+    sprintf_s(shareBuffer,1024,"%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\n",
+              (double)finishByte / 1048576,
+              "/",
+              (double)FileWatcher::getInstance()->GetTotalFileSize() / 1048576,"MB ",
+              ((double)finishByte / 1048576)/((double)time.elapsed()/1000),//平均速度
+              "MB/S (",
+              100 * (double)finishByte / FileWatcher::getInstance()->GetTotalFileSize() ,
+              ")");
 }
 
 

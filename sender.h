@@ -11,6 +11,7 @@
 #include<iostream>
 #include"pathremake.h"
 #include<QVariant>
+#include<QSharedMemory>
 
 
 
@@ -18,7 +19,7 @@ class Sender : public QObject
 {
     Q_OBJECT
 public:
-    explicit Sender();
+    explicit Sender(int _port);
     virtual ~Sender();
     void    sendFile(std::queue<QString> &curfileQueue,qint64 pos = 0);//发送文件
     void    sendTaskCode();//发送文件清单
@@ -35,6 +36,9 @@ private:
     qint64  finishByte;//已经发送的总字节数
     qint64  cunrrentFinishByte;//当前发送的字节数
     qint64  FileLength;//文件长度
+    QString memId;//共享内存ID
+    QSharedMemory *printMem;
+    char*   shareBuffer;//共享内存buffer指针
 private:
     bool    adjustedQueues(const QByteArray &fileName ,std::queue<QString> &fileQue);//调整文件队列到断点时状态
     unsigned long nameHash(std::queue<QString> fileNameQue);//求任务编号

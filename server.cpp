@@ -15,7 +15,7 @@ Server::Server(const std::string &_strPort)
     //TCP
     server = new MyTcpSever;
     tcpSock = new QTcpSocket;//创建一个套接字
-    sender = new Sender;//创建一个文件发送器
+    sender = new Sender(m_port);//创建一个文件发送器
 
 
 
@@ -27,9 +27,7 @@ Server::Server(const std::string &_strPort)
     if (!server->isListening()){//监听
         if (server->listen(QHostAddress::Any,m_port)){
            // std::cout<<"open listen port success!"<<std::endl;//提示监听成功
-
             WriteDataToMem('1');
-
         }
         else{
             std::cout<<"open listen port fail!"<<std::endl;
