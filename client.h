@@ -14,6 +14,7 @@
 #include<QVariant>
 #include<QThread>
 #include"heartbeat.h"
+#include<QSharedMemory>
 
 
 class Client : QObject
@@ -50,6 +51,9 @@ private:
     QThread     heartBeatThread;//心跳线程
     HeartBeat   heart;
     qint64      ToalFileSize;//要接收的文件总大小
+    QString     memId;//共享内存ID
+    QSharedMemory    *printMem;//打印输出的共享内存
+    char        *shareBuffer;//共享内存指针
 protected:
     BreakPoint breakPoint;//断点
 private:

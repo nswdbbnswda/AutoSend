@@ -45,6 +45,18 @@ Client::Client(const std::string strIpAddr,const std::string  inputPort,const st
     //emit  startHeart(m_pSocket->socketDescriptor());//把套接字句柄传给子线程
 
 
+
+
+    //设置共享内存
+    memId ="c" + QString::fromStdString(inputPort);//设置共享内存编号
+    printMem = new QSharedMemory;//实例化共享内存对象
+    printMem->setKey(memId);//设置共享内存的ID
+    printMem->detach();//将共享内存与本进程分离
+    printMem->create(1024);//1KB//创建共享内存
+    shareBuffer = (char*)printMem->data();//获得共享内存指针
+
+
+
     connectToServer();//连接服务器
     connect(this,SIGNAL(refresh()),this,SLOT(showSpeed()));
     connect(m_pSocket,SIGNAL(disconnected()),this,SLOT(lostConnection()));//断开连接了做异常处理
@@ -62,6 +74,7 @@ Client::~Client()
 {
     if(m_pSocket) {delete m_pSocket; m_pSocket = NULL; }
     if(logFile){delete logFile; logFile = NULL; }
+    if(printMem) delete printMem;
 
 }
 
@@ -233,7 +246,17 @@ void Client::showSpeed()
            ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
            "MB/S (",
            100 * (double)finishByte / ToalFileSize ,
-           ")");   
+           ")");
+    //把进度信息写进共享内存
+    sprintf_s(shareBuffer,1024,"%.1lf%s%.1lf%s%.1lf%s%.2lf%%%s\n",
+              (double)finishByte/1048576,
+              "/",
+              (double)ToalFileSize/1048576,"MB ",
+              ((double)finishByte / 1048576)/((double)time.elapsed()/1000),
+              "MB/S (",
+              100 * (double)finishByte / ToalFileSize ,
+              ")"
+         );
 }
 
 
